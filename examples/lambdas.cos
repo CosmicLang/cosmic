@@ -1,0 +1,12 @@
+fn apply(f, x) {
+    return f(x)
+}
+
+fn main() {
+    let double = lambda x => x * 2
+    let square = lambda x => x * x
+    println(apply(double, 5))
+    println(apply(square, 5))
+}
+
+main()

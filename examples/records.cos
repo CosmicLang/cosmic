@@ -1,0 +1,15 @@
+record Point(x: int, y: int)
+
+fn distance(a: Point, b: Point) -> float {
+    let dx = a.x - b.x
+    let dy = a.y - b.y
+    return (dx * dx + dy * dy) ** 0.5
+}
+
+fn main() {
+    let p1 = Point(0, 0)
+    let p2 = Point(3, 4)
+    println(distance(p1, p2))
+}
+
+main()

@@ -1,0 +1,13 @@
+enum Color {
+    RED,
+    GREEN,
+    BLUE
+}
+
+fn main() {
+    println(Color.RED)
+    println(Color.GREEN)
+    println(Color.BLUE)
+}
+
+main()

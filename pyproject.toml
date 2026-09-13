@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cosmic-lang"
+version = "0.1.0"
+description = "Cosmic Language — A modern, powerful programming language with Python & ByteCode backends"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Cosmic Team"},
+]
+keywords = ["language", "compiler", "python", "bytecode", "transpiler", "programming-language"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Interpreters",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-xdist>=3.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+]
+
+[project.scripts]
+cosmic = "cosmic.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/cosmic-lang/cosmic"
+Documentation = "https://cosmic-lang.readthedocs.io"
+Repository = "https://github.com/cosmic-lang/cosmic"
+Issues = "https://github.com/cosmic-lang/cosmic/issues"
+
+[tool.setuptools.packages.find]
+include = ["cosmic*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short --cov=cosmic --cov-report=term-missing --cov-report=html --cov-report=xml -x"
+markers = [
+    "slow: marks tests as slow",
+    "integration: integration tests",
+    "e2e: end-to-end tests",
+    "golden: golden file tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["cosmic"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/REPL.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.",
+    "raise NotImplementedError",
+    "pass",
+    "except ImportError",
+]
+show_missing = true
+precision = 2
+fail_under = 0
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+ignore = ["E501", "B008", "F811"]
