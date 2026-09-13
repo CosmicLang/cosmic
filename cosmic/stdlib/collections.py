@@ -125,7 +125,6 @@ def interleave(*iterables: Any) -> list:
                 result.append(next(it))
             except StopIteration:
                 return result
-    return result
 
 
 def group_by(iterable: Any, key_func: Callable) -> dict:
@@ -169,13 +168,8 @@ def compact(iterable: Any) -> list:
 
 
 def flatten_deep(iterable: Any) -> list:
-    result = []
-    for item in iterable:
-        if hasattr(item, '__iter__') and not isinstance(item, (str, bytes)):
-            result.extend(flatten_deep(item))
-        else:
-            result.append(item)
-    return result
+    """Flatten nested iterables recursively."""
+    return flatten(iterable)
 
 
 @dataclass

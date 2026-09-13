@@ -213,30 +213,6 @@ class Lexer:
             return Token(TokenType.BOOL_LIT, False, start_line, start_col, length)
         if word == 'none':
             return Token(TokenType.NONE_LIT, None, start_line, start_col, length)
-        if word == 'self':
-            return Token(TokenType.SELF, 'self', start_line, start_col, length)
-        if word == 'super':
-            return Token(TokenType.SUPER, 'super', start_line, start_col, length)
-        if word == 'and':
-            return Token(TokenType.AND, 'and', start_line, start_col, length)
-        if word == 'or':
-            return Token(TokenType.OR, 'or', start_line, start_col, length)
-        if word == 'not':
-            return Token(TokenType.NOT, 'not', start_line, start_col, length)
-        if word == 'is':
-            return Token(TokenType.IS, 'is', start_line, start_col, length)
-        if word == 'in':
-            return Token(TokenType.IN, 'in', start_line, start_col, length)
-        if word == 'as':
-            return Token(TokenType.AS, 'as', start_line, start_col, length)
-        if word == 'self':
-            return Token(TokenType.SELF, 'self', start_line, start_col, length)
-        if word == 'super':
-            return Token(TokenType.SUPER, 'super', start_line, start_col, length)
-        if word == 'self':
-            return Token(TokenType.SELF, 'self', start_line, start_col, length)
-        if word == 'super':
-            return Token(TokenType.SUPER, 'super', start_line, start_col, length)
 
         return Token(TokenType.IDENT, word, start_line, start_col, length)
 

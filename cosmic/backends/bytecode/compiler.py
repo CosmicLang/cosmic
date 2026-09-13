@@ -185,29 +185,6 @@ class BytecodeCompiler:
             state = state.parent
         return None
 
-    def _enter_scope(self):
-        self.state.scope_depth += 1
-
-    def _exit_scope(self) -> list[Instruction]:
-        pops = []
-        while self.state.instructions:
-            last = self.state.instructions[-1]
-            if last.op in (Op.LOAD_LOCAL, Op.STORE_LOCAL):
-                break
-            self.state.instructions.pop()
-        depth = self.state.scope_depth
-        count = 0
-        for i in range(len(self.state.local_names) - 1, -1, -1):
-            if i < self.state.local_count - count:
-                break
-            count += 1
-        for _ in range(count):
-            self.state.instructions.append(Instruction(Op.POP_TOP, None, 0))
-        self.state.local_names = self.state.local_names[:-count] if count else self.state.local_names
-        self.state.local_count -= count
-        self.state.scope_depth -= 1
-        return pops
-
     def compile(self, ast: Program) -> tuple[list[Instruction], list[Any]]:
         for stmt in ast.statements:
             self._compile_node(stmt)
@@ -372,6 +349,7 @@ class BytecodeCompiler:
     def _compile_PipeExpr(self, node: PipeExpr):
         self._compile_node(node.left)
         self._compile_node(node.right)
+        self._emit(Op.CALL, 1, node.line)
 
     def _compile_NullishCoalesceExpr(self, node: NullishCoalesceExpr):
         self._compile_node(node.left)
@@ -384,7 +362,8 @@ class BytecodeCompiler:
 
     def _compile_GeneratorExpr(self, node: GeneratorExpr):
         self._compile_node(node.iter_expr)
-        self._emit(Op.MAKE_LIST, 0, node.line)
+        self._compile_node(node.element)
+        self._emit(Op.MAKE_LIST, 1, node.line)
 
     def _compile_AwaitExpr(self, node: AwaitExpr):
         self._compile_node(node.value)
@@ -412,9 +391,14 @@ class BytecodeCompiler:
 
     def _compile_MatchExpr(self, node: MatchExpr):
         self._compile_node(node.value)
-        self._emit(Op.POP_TOP, line=node.line)
+        for case in node.cases:
+            self._compile_node(case.pattern)
+            self._compile_node(case.body)
 
     def _compile_MatchCase(self, node: MatchCase):
+        self._compile_node(node.pattern)
+        if node.guard:
+            self._compile_node(node.guard)
         self._compile_node(node.body)
 
     # ── Statements ────────────────────────────────────────────────────

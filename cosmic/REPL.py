@@ -4,6 +4,8 @@ import sys
 import os
 import traceback
 
+from typing import Any
+
 from ..compiler.pipeline import Compiler, CompileResult
 from ..lexer.lexer import tokenize, LexError
 from ..parser.parser import ParseError
@@ -82,7 +84,6 @@ Commands:
             for i, h in enumerate(self.history[:-1], 1):
                 print(f"  {i}: {h}")
         elif cmd == ':ast' and self.last_result and self.last_result.ast:
-            from ..ast.nodes import ASTPrinter
             try:
                 print_ast(self.last_result.ast)
             except Exception:

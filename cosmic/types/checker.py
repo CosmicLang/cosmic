@@ -1,7 +1,7 @@
 """Type checker for the Cosmic language."""
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Optional, Dict, List, Set, Tuple, Union, Callable
+from typing import Any, Optional, Dict, List, Set, Tuple
 
 
 from ..ast.nodes import *

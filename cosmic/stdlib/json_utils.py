@@ -1,7 +1,7 @@
 """Cosmic Standard Library — json_utils module."""
 from __future__ import annotations
 import json
-from typing import Any
+from typing import Any, Callable
 
 
 def load(path: str) -> Any:

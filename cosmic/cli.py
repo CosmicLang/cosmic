@@ -8,10 +8,7 @@ from typing import Any
 
 from ..compiler.pipeline import Compiler, compile_file, compile_source, transpile_to_python
 from ..lexer.lexer import tokenize
-from ..lexer.tokens import TokenType
-from ..parser.parser import Parser
-from ..backends.bytecode.compiler import BytecodeCompiler, CosmicVM
-from ..backends.python.transpiler import transpile
+from ..backends.bytecode.compiler import CosmicVM
 
 
 def cmd_compile(args):
@@ -176,9 +173,13 @@ def cmd_ast(args):
     try:
         with open(path, 'r') as f:
             source = f.read()
-        ast = parse(source, path)
-        from ..REPL import print_ast
-        print_ast(ast)
+        result = compile_source(source, path)
+        if result.ast:
+            from ..REPL import print_ast
+            print_ast(result.ast)
+        else:
+            print("Error: No AST generated", file=sys.stderr)
+            return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1

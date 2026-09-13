@@ -180,7 +180,6 @@ def split_all(path: str) -> list[str]:
             break
         else:
             break
-            break
         path = head
     return list(reversed(parts))
 

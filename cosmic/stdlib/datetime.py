@@ -111,9 +111,12 @@ class DateTime:
                 day: int | None = None, hour: int | None = None,
                 minute: int | None = None, second: int | None = None) -> DateTime:
         return DateTime(self._dt_obj.replace(
-            year=year or self.year, month=month or self.month,
-            day=day or self.day, hour=hour or self.hour,
-            minute=minute or self.minute, second=second or self.second,
+            year=year if year is not None else self.year,
+            month=month if month is not None else self.month,
+            day=day if day is not None else self.day,
+            hour=hour if hour is not None else self.hour,
+            minute=minute if minute is not None else self.minute,
+            second=second if second is not None else self.second,
         ))
 
     def __str__(self) -> str:
