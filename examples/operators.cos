@@ -1,0 +1,70 @@
+// Operators in Cosmic
+// Demonstrates: arithmetic, comparisons, logical, pipe, nullish coalesce
+
+fn add(a, b) { return a + b }
+fn mul(a, b) { return a * b }
+fn negate(x) { return -x }
+
+fn main() {
+    // --- Arithmetic operators ---
+    println("=== Arithmetic ===")
+    println("10 + 3 = " + str(10 + 3))
+    println("10 - 3 = " + str(10 - 3))
+    println("10 * 3 = " + str(10 * 3))
+    println("10 / 3 = " + str(10 / 3))
+    println("10 % 3 = " + str(10 % 3))
+    println("10 ** 3 = " + str(10 ** 3))
+    println("10 // 3 = " + str(10 // 3))
+
+    // --- Comparison operators ---
+    println("\n=== Comparisons ===")
+    println("5 == 5 : " + str(5 == 5))
+    println("5 != 3 : " + str(5 != 3))
+    println("5 > 3  : " + str(5 > 3))
+    println("5 < 3  : " + str(5 < 3))
+    println("5 >= 5 : " + str(5 >= 5))
+    println("5 <= 3 : " + str(5 <= 3))
+
+    // --- Logical operators ---
+    println("\n=== Logical ===")
+    let a = true
+    let b = false
+    println("true and false : " + str(a and b))
+    println("true or false  : " + str(a or b))
+    println("not true       : " + str(not a))
+
+    // --- Bitwise operators ---
+    println("\n=== Bitwise ===")
+    println("0b1010 & 0b1100 = " + str(0b1010 & 0b1100))
+    println("0b1010 | 0b1100 = " + str(0b1010 | 0b1100))
+    println("0b1010 ^ 0b1100 = " + str(0b1010 ^ 0b1100))
+    println("~0b1010         = " + str(~0b1010))
+
+    // --- Pipe operator ---
+    println("\n=== Pipe ===")
+    let result = 5 |> add(3) |> mul(2)
+    println("5 |> add(3) |> mul(2) = " + str(result))
+
+    let negated = 10 |> negate
+    println("10 |> negate = " + str(negated))
+
+    // --- Nullish coalesce ---
+    println("\n=== Nullish Coalesce ===")
+    let x = none ?? 42
+    println("none ?? 42 = " + str(x))
+
+    let y = 10 ?? 42
+    println("10 ?? 42 = " + str(y))
+
+    let name: string? = none
+    let display = name ?? "Guest"
+    println("name ?? 'Guest' = " + display)
+
+    // --- Unary operators ---
+    println("\n=== Unary ===")
+    let val = 42
+    println("-42 = " + str(-val))
+    println("not false = " + str(not false))
+}
+
+main()

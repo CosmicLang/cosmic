@@ -1,4 +1,4 @@
-"""Cosmic Standard Library — testing module."""
+"""Lightweight test framework with assertions and test suites for the Cosmic Standard Library."""
 from __future__ import annotations
 import time
 import traceback
@@ -22,9 +22,11 @@ class TestSuite:
     _results: list[TestResult] = field(default_factory=list)
 
     def add(self, name: str, func: Callable) -> None:
+        """Add a named test function to the suite."""
         self._tests.append((name, func))
 
     def run(self, verbose: bool = True) -> list[TestResult]:
+        """Run all tests and return results."""
         self._results = []
         total = len(self._tests)
         passed = 0
@@ -59,6 +61,7 @@ class TestSuite:
         return self._results
 
     def report(self) -> str:
+        """Return a formatted test report string."""
         lines = [f"Test Suite: {self.name}"]
         lines.append(f"{'='*50}")
         for r in self._results:
@@ -73,26 +76,31 @@ class TestSuite:
 
 
 def assert_equal(actual: Any, expected: Any, msg: str = '') -> None:
+    """Assert that actual equals expected."""
     if actual != expected:
         raise AssertionError(msg or f"Expected {expected!r}, got {actual!r}")
 
 
 def assert_not_equal(actual: Any, expected: Any, msg: str = '') -> None:
+    """Assert that actual does not equal expected."""
     if actual == expected:
         raise AssertionError(msg or f"Expected values to be different, both are {actual!r}")
 
 
 def assert_true(value: Any, msg: str = '') -> None:
+    """Assert that value is truthy."""
     if not value:
         raise AssertionError(msg or f"Expected truthy value, got {value!r}")
 
 
 def assert_false(value: Any, msg: str = '') -> None:
+    """Assert that value is falsy."""
     if value:
         raise AssertionError(msg or f"Expected falsy value, got {value!r}")
 
 
 def assert_raises(exception_type: type, func: Callable, *args: Any, **kwargs: Any) -> None:
+    """Assert that func raises the given exception type."""
     try:
         func(*args, **kwargs)
     except exception_type:
@@ -103,73 +111,87 @@ def assert_raises(exception_type: type, func: Callable, *args: Any, **kwargs: An
 
 
 def assert_in(item: Any, container: Any, msg: str = '') -> None:
+    """Assert that item is in container."""
     if item not in container:
         raise AssertionError(msg or f"Expected {item!r} to be in {container!r}")
 
 
 def assert_not_in(item: Any, container: Any, msg: str = '') -> None:
+    """Assert that item is not in container."""
     if item in container:
         raise AssertionError(msg or f"Expected {item!r} not to be in {container!r}")
 
 
 def assert_is_none(value: Any, msg: str = '') -> None:
+    """Assert that value is None."""
     if value is not None:
         raise AssertionError(msg or f"Expected None, got {value!r}")
 
 
 def assert_is_not_none(value: Any, msg: str = '') -> None:
+    """Assert that value is not None."""
     if value is None:
         raise AssertionError(msg or f"Expected non-None value, got None")
 
 
 def assert_greater(a: Any, b: Any, msg: str = '') -> None:
+    """Assert that a > b."""
     if not (a > b):
         raise AssertionError(msg or f"Expected {a!r} > {b!r}")
 
 
 def assert_greater_equal(a: Any, b: Any, msg: str = '') -> None:
+    """Assert that a >= b."""
     if not (a >= b):
         raise AssertionError(msg or f"Expected {a!r} >= {b!r}")
 
 
 def assert_less(a: Any, b: Any, msg: str = '') -> None:
+    """Assert that a < b."""
     if not (a < b):
         raise AssertionError(msg or f"Expected {a!r} < {b!r}")
 
 
 def assert_less_equal(a: Any, b: Any, msg: str = '') -> None:
+    """Assert that a <= b."""
     if not (a <= b):
         raise AssertionError(msg or f"Expected {a!r} <= {b!r}")
 
 
 def assert_contains(haystack: Any, needle: Any, msg: str = '') -> None:
+    """Assert that needle is contained in haystack."""
     if needle not in haystack:
         raise AssertionError(msg or f"Expected {needle!r} to be contained in {haystack!r}")
 
 
 def assert_type(value: Any, expected_type: type, msg: str = '') -> None:
+    """Assert that value is an instance of expected_type."""
     if not isinstance(value, expected_type):
         raise AssertionError(msg or f"Expected type {expected_type.__name__}, got {type(value).__name__}")
 
 
 def assert_length(collection: Any, expected: int, msg: str = '') -> None:
+    """Assert that the collection has the expected length."""
     actual = len(collection)
     if actual != expected:
         raise AssertionError(msg or f"Expected length {expected}, got {actual}")
 
 
 def assert_approx_equal(actual: float, expected: float, places: int = 7, msg: str = '') -> None:
+    """Assert that two floats are approximately equal within decimal places."""
     if round(abs(actual - expected), places) != 0:
         raise AssertionError(msg or f"Expected {actual} ≈ {expected} (within {places} decimal places)")
 
 
 def assert_regex(string: str, pattern: str, msg: str = '') -> None:
+    """Assert that the string matches the regex pattern."""
     import re
     if not re.search(pattern, string):
         raise AssertionError(msg or f"Expected {string!r} to match pattern {pattern!r}")
 
 
 def test(name: str) -> Callable:
+    """Decorator to mark a function as a named test."""
     def decorator(func: Callable) -> Callable:
         func._test_name = name
         return func
@@ -177,6 +199,7 @@ def test(name: str) -> Callable:
 
 
 def describe(name: str) -> Callable:
+    """Decorator to mark a function as a test group/describe block."""
     def decorator(func: Callable) -> Callable:
         func._describe_name = name
         return func

@@ -1,0 +1,69 @@
+// Classes in Cosmic
+// Demonstrates: class declarations, methods, fields, inheritance
+
+class Animal {
+    fn init(self, name: string, sound: string) {
+        self.name = name
+        self.sound = sound
+    }
+
+    fn speak(self) -> string {
+        return self.name + " says " + self.sound
+    }
+
+    fn describe(self) -> string {
+        return "Animal: " + self.name
+    }
+}
+
+class Dog extends Animal {
+    fn init(self, name: string, breed: string) {
+        self.name = name
+        self.sound = "Woof"
+        self.breed = breed
+    }
+
+    fn fetch(self, item: string) -> string {
+        return self.name + " fetches the " + item
+    }
+
+    fn describe(self) -> string {
+        return "Dog: " + self.name + " (" + self.breed + ")"
+    }
+}
+
+class Counter {
+    fn init(self) {
+        self.count = 0
+    }
+
+    fn increment(self) {
+        self.count += 1
+    }
+
+    fn get(self) -> int {
+        return self.count
+    }
+}
+
+fn main() {
+    // Basic class usage
+    let cat = Animal("Whiskers", "Meow")
+    println(cat.speak())
+    println(cat.describe())
+
+    // Inheritance
+    let dog = Dog("Rex", "German Shepherd")
+    println(dog.speak())
+    println(dog.fetch("ball"))
+    println(dog.describe())
+
+    // Stateful object
+    let counter = Counter()
+    counter.increment()
+    counter.increment()
+    counter.increment()
+    println("Counter: " + str(counter.get()))
+}
+
+main()

@@ -1,0 +1,65 @@
+// Control Flow in Cosmic
+// Demonstrates: if/elif/else, while, for, loop/break/continue
+
+fn main() {
+    // --- if / elif / else ---
+    let age = 25
+    if age < 13 {
+        println("Child")
+    } elif age < 18 {
+        println("Teenager")
+    } elif age < 65 {
+        println("Adult")
+    } else {
+        println("Senior")
+    }
+
+    // --- while loop ---
+    let count = 0
+    while count < 5 {
+        print(count)
+        print(" ")
+        count += 1
+    }
+    println("")
+
+    // --- for loop with range ---
+    println("Counting with for:")
+    for i in range(5) {
+        println(i)
+    }
+
+    // --- for-in over a list ---
+    let fruits = ["apple", "banana", "cherry"]
+    for fruit in fruits {
+        println(fruit)
+    }
+
+    // --- loop / break ---
+    println("Finding first even number > 7:")
+    var n = 8
+    loop {
+        if n % 2 == 0 {
+            println(n)
+            break
+        }
+        n += 1
+    }
+
+    // --- loop / continue ---
+    println("Odd numbers from 1 to 10:")
+    var i = 1
+    loop {
+        if i > 10 {
+            break
+        }
+        if i % 2 == 0 {
+            i += 1
+            continue
+        }
+        println(i)
+        i += 1
+    }
+}
+
+main()

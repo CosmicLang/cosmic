@@ -1,0 +1,60 @@
+// Error Handling in Cosmic
+// Demonstrates: try/catch/finally, raise, error messages
+
+fn divide(a: float, b: float) -> float {
+    if b == 0 {
+        raise "Division by zero"
+    }
+    return a / b
+}
+
+fn parse_number(s: string) -> int {
+    if s == "" {
+        raise "Empty string"
+    }
+    var result = 0
+    for ch in s {
+        let code = ord(ch)
+        if code < 48 or code > 57 {
+            raise "Invalid character: " + ch
+        }
+        result = result * 10 + (code - 48)
+    }
+    return result
+}
+
+fn main() {
+    // Basic try/catch
+    println("=== Division ===")
+    try {
+        println(divide(10.0, 3.0))
+        println(divide(10.0, 0.0))
+    } catch e {
+        println("Error: " + str(e))
+    }
+
+    // try/catch/finally
+    println("\n=== Parsing ===")
+    try {
+        let n = parse_number("123")
+        println("Parsed: " + str(n))
+        let bad = parse_number("abc")
+        println(bad)
+    } catch e {
+        println("Caught: " + str(e))
+    } finally {
+        println("Finally block always runs")
+    }
+
+    // Multiple operations in try
+    println("\n=== Multiple ===")
+    try {
+        let a = divide(100.0, 5.0)
+        let b = divide(100.0, 0.0)
+        println(a + b)
+    } catch e {
+        println("Error: " + str(e))
+    }
+}
+
+main()

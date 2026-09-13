@@ -1,15 +1,42 @@
+// Records in Cosmic
+// Demonstrates: record declarations, field access, default values, methods
+
 record Point(x: int, y: int)
 
-fn distance(a: Point, b: Point) -> float {
-    let dx = a.x - b.x
-    let dy = a.y - b.y
-    return (dx * dx + dy * dy) ** 0.5
+record Person(name: string, age: int = 0, active: bool = true)
+
+// Record with a method
+record Rect(width: float, height: float) {
+    fn area(self) -> float {
+        return self.width * self.height
+    }
+
+    fn perimeter(self) -> float {
+        return 2 * (self.width + self.height)
+    }
 }
 
 fn main() {
-    let p1 = Point(0, 0)
-    let p2 = Point(3, 4)
-    println(distance(p1, p2))
+    // Basic record creation
+    let p1 = Point(3, 4)
+    println("Point: x=" + str(p1.x) + ", y=" + str(p1.y))
+
+    // Default values
+    let p2 = Person("Alice", 30)
+    let p3 = Person("Bob")
+    println(p1.x)
+    println(p2.name)
+    println(p3.age)   // default: 0
+
+    // Record methods
+    let r = Rect(5.0, 3.0)
+    println("Area: " + str(r.area()))
+    println("Perimeter: " + str(r.perimeter()))
+
+    // Records are value-like — equality works
+    let a = Point(1, 2)
+    let b = Point(1, 2)
+    println("a == b: " + str(a.x == b.x and a.y == b.y))
 }
 
 main()

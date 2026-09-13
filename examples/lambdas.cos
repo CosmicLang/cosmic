@@ -1,12 +1,75 @@
+// Lambdas & Higher-Order Functions in Cosmic
+// Demonstrates: lambda expressions, passing functions as arguments
+
 fn apply(f, x) {
     return f(x)
 }
 
+fn twice(f, x) {
+    return f(f(x))
+}
+
+fn filter_list(items, pred) {
+    let result = []
+    for item in items {
+        if pred(item) {
+            result.append(item)
+        }
+    }
+    return result
+}
+
+fn map_list(items, transform) {
+    let result = []
+    for item in items {
+        result.append(transform(item))
+    }
+    return result
+}
+
+fn reduce_list(items, op, initial) {
+    var acc = initial
+    for item in items {
+        acc = op(acc, item)
+    }
+    return acc
+}
+
 fn main() {
+    // Basic lambdas
     let double = lambda x => x * 2
     let square = lambda x => x * x
-    println(apply(double, 5))
-    println(apply(square, 5))
+    let add = lambda a, b => a + b
+
+    println("double(5) = " + str(apply(double, 5)))
+    println("square(5) = " + str(apply(square, 5)))
+    println("add(3, 4) = " + str(apply(add, 3, 4)))
+
+    // Composition with twice
+    println("twice(double, 3) = " + str(twice(double, 3)))
+    println("twice(square, 2) = " + str(twice(square, 2)))
+
+    // Filtering
+    let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    let evens = filter_list(numbers, lambda x => x % 2 == 0)
+    println("Evens: " + str(evens))
+
+    let big = filter_list(numbers, lambda x => x > 5)
+    println("Big: " + str(big))
+
+    // Mapping
+    let doubled = map_list(numbers, double)
+    println("Doubled: " + str(doubled))
+
+    let squared = map_list(numbers, square)
+    println("Squared: " + str(squared))
+
+    // Reducing
+    let sum = reduce_list(numbers, add, 0)
+    println("Sum: " + str(sum))
+
+    let product = reduce_list([1, 2, 3, 4], lambda a, b => a * b, 1)
+    println("Product: " + str(product))
 }
 
 main()

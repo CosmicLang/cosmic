@@ -1,27 +1,32 @@
-"""Cosmic Standard Library — json_utils module."""
+"""JSON loading, dumping, validation, transformation, and diff utilities for the Cosmic Standard Library."""
 from __future__ import annotations
 import json
 from typing import Any, Callable
 
 
 def load(path: str) -> Any:
+    """Load JSON data from a file."""
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
 def loads(s: str) -> Any:
+    """Parse a JSON string into a Python object."""
     return json.loads(s)
 
 
 def dumps(obj: Any, indent: int = 2) -> str:
+    """Serialize a Python object to a JSON string."""
     return json.dumps(obj, indent=indent, default=str, ensure_ascii=False)
 
 
 def pretty(obj: Any) -> str:
+    """Return a pretty-printed JSON string."""
     return dumps(obj, indent=2)
 
 
 def validate(data: Any, schema: dict) -> tuple[bool, list[str]]:
+    """Validate data against a simple JSON schema. Return (is_valid, errors)."""
     errors = []
     if 'type' in schema:
         type_map = {'string': str, 'number': (int, float), 'integer': int,
@@ -43,6 +48,7 @@ def validate(data: Any, schema: dict) -> tuple[bool, list[str]]:
 
 
 def patch(data: dict, patch_doc: dict) -> dict:
+    """Apply a JSON Patch-style document to data. Set value to None to remove."""
     result = dict(data)
     for key, value in patch_doc.items():
         if value is None:
@@ -55,6 +61,7 @@ def patch(data: dict, patch_doc: dict) -> dict:
 
 
 def merge(base: dict, override: dict) -> dict:
+    """Deep merge override into base, returning a new dict."""
     result = dict(base)
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
@@ -65,6 +72,7 @@ def merge(base: dict, override: dict) -> dict:
 
 
 def diff(a: Any, b: Any, path: str = '') -> list[dict[str, Any]]:
+    """Compute a JSON diff between two values as a list of operations."""
     changes = []
     if type(a) != type(b):
         changes.append({'op': 'replace', 'path': path, 'value': b})
@@ -94,6 +102,7 @@ def diff(a: Any, b: Any, path: str = '') -> list[dict[str, Any]]:
 
 
 def flatten(data: dict, prefix: str = '') -> dict[str, Any]:
+    """Flatten a nested dict to dot-separated keys."""
     result = {}
     for key, value in data.items():
         new_key = f"{prefix}.{key}" if prefix else key
@@ -105,6 +114,7 @@ def flatten(data: dict, prefix: str = '') -> dict[str, Any]:
 
 
 def unflatten(data: dict[str, Any]) -> dict:
+    """Unflatten dot-separated keys back into a nested dict."""
     result = {}
     for key, value in data.items():
         parts = key.split('.')
@@ -118,6 +128,7 @@ def unflatten(data: dict[str, Any]) -> dict:
 
 
 def query(data: Any, path: str) -> Any:
+    """Query a nested structure using a slash-separated path."""
     parts = path.strip('/').split('/')
     current = data
     for part in parts:
@@ -134,6 +145,7 @@ def query(data: Any, path: str) -> Any:
 
 
 def transform(data: Any, func: Callable) -> Any:
+    """Apply func to all leaf values in the data structure."""
     if isinstance(data, dict):
         return {k: transform(v, func) for k, v in data.items()}
     elif isinstance(data, list):
@@ -143,16 +155,20 @@ def transform(data: Any, func: Callable) -> Any:
 
 
 def schema_validate(data: Any, schema: dict) -> list[str]:
+    """Validate data against a schema and return the list of errors."""
     return validate(data, schema)[1]
 
 
 def to_jsonl(data: list[dict]) -> str:
+    """Convert a list of dicts to JSON Lines format."""
     return '\n'.join(json.dumps(item, default=str) for item in data)
 
 
 def from_jsonl(text: str) -> list[dict]:
+    """Parse JSON Lines format into a list of dicts."""
     return [json.loads(line) for line in text.strip().split('\n') if line.strip()]
 
 
 def compact(obj: Any) -> str:
+    """Serialize to a compact JSON string without whitespace."""
     return json.dumps(obj, separators=(',', ':'), default=str, ensure_ascii=False)
