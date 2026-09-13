@@ -3,7 +3,19 @@ from __future__ import annotations
 from enum import IntEnum, auto
 from dataclasses import dataclass, field
 from typing import Any, Optional
-from ...ast.nodes import *
+from ...ast.nodes import (
+    ASTNode, AsExpr, AssertStmt, AssignStmt, AugAssignStmt, AwaitExpr,
+    BinaryExpr, Block, BoolLiteral, BreakStmt, CallExpr, CharLiteral,
+    ClassDecl, ContinueStmt, DictExpr, EnumDecl, ExprStmt, FloatLiteral,
+    FnDecl, ForStmt, FromImportDecl, GeneratorExpr, Identifier, IfExpr,
+    IfStmt, ImportDecl, IndexExpr, IntLiteral, InterfaceDecl, IsExpr,
+    LambdaExpr, LetStmt, ListExpr, LoopStmt, MatchCase, MatchExpr,
+    MethodCallExpr, ModuleDecl, NoneLiteral, NullishCoalesceExpr, Param,
+    PipeExpr, Program, PropertyAccessExpr, RaiseStmt, RecordDecl,
+    ReturnStmt, SelfExpr, SetExpr, SliceExpr, SpreadExpr, StringLiteral,
+    SuperExpr, TestDecl, TryStmt, TupleExpr, TypeAlias, TypeOfExpr,
+    TypeRef, UnaryExpr, WhileStmt, YieldExpr,
+)
 
 
 # ─── Opcodes ─────────────────────────────────────────────────────────────
@@ -705,14 +717,6 @@ class CosmicRuntimeError(VMError):
     def __init__(self, message: str, traceback_info=None):
         super().__init__(message)
         self.traceback_info = traceback_info or []
-
-
-@dataclass
-class Frame:
-    func: BytecodeFunction
-    ip: int = 0
-    locals: list[Any] = field(default_factory=list)
-    stack: list[Any] = field(default_factory=list)
 
 
 class CallFrame:

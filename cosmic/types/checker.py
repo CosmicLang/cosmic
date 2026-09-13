@@ -4,7 +4,20 @@ from dataclasses import dataclass, field
 from typing import Any, Optional, Dict, List, Set, Tuple
 
 
-from ..ast.nodes import *
+from ..ast.nodes import (
+    ASTNode, AsExpr, AssertStmt, AssignStmt, AugAssignStmt, AwaitExpr,
+    BinaryExpr, Block, BoolLiteral, BreakStmt, CallExpr, CatchClause,
+    CharLiteral, ClassDecl, ContinueStmt, DictExpr, EnumDecl, EnumVariant,
+    ExprStmt, FloatLiteral, FnDecl, ForStmt, FromImportDecl, FuncType,
+    GeneratorExpr, Identifier, IfExpr, IfStmt, ImportDecl, IndexExpr,
+    IntLiteral, InterfaceDecl, IsExpr, LambdaExpr, LetStmt, ListExpr,
+    LoopStmt, MatchCase, MatchExpr, MethodCallExpr, ModuleDecl, NoneLiteral,
+    NullishCoalesceExpr, Param, PipeExpr, Program, PropertyAccessExpr,
+    RaiseStmt, RecordDecl, ReturnStmt, SelfExpr, SetExpr, SliceExpr,
+    SpreadExpr, StringLiteral, SuperExpr, TestDecl, TryStmt, TupleExpr,
+    TupleType, TypeAlias, TypeOfExpr, TypeRef, UnaryExpr, UnionType,
+    WhileStmt, YieldExpr,
+)
 
 
 class TypeCheckError(Exception):

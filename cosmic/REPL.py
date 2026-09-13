@@ -2,15 +2,14 @@
 from __future__ import annotations
 import sys
 import os
-import traceback
 
 from typing import Any
 
-from ..compiler.pipeline import Compiler, CompileResult
-from ..lexer.lexer import tokenize, LexError
-from ..parser.parser import ParseError
-from ..types.checker import TypeCheckError
-from ..backends.bytecode.compiler import CosmicVM, BytecodeCompiler
+from cosmic.compiler.pipeline import Compiler, CompileResult
+from cosmic.lexer.lexer import tokenize, LexError
+from cosmic.parser.parser import ParseError
+from cosmic.types.checker import TypeCheckError
+from cosmic.backends.bytecode.compiler import CosmicVM, BytecodeCompiler
 
 
 class REPL:
@@ -106,7 +105,8 @@ Commands:
                         for err in result.errors:
                             print(f"Error: {err}")
                     elif result.bytecode:
-                        self.vm.run(result.bytecode)
+                        instructions, constants = result.bytecode
+                        self.vm.run(instructions, constants)
                 except Exception as e:
                     print(f"Error: {e}")
             else:
@@ -145,7 +145,8 @@ Commands:
                 for err in result.errors:
                     print(f"Error: {err}")
             elif result.bytecode:
-                self.vm.run(result.bytecode)
+                instructions, constants = result.bytecode
+                self.vm.run(instructions, constants)
         except LexError as e:
             print(f"Lex error: {e}")
         except ParseError as e:

@@ -1,7 +1,19 @@
 """Parser for the Cosmic language. Recursive descent + Pratt for expressions."""
 from __future__ import annotations
 from ..lexer.tokens import Token, TokenType
-from ..ast.nodes import *
+from ..ast.nodes import (
+    ASTNode, AsExpr, AssertStmt, AssignStmt, AugAssignStmt, AwaitExpr,
+    BinaryExpr, Block, BoolLiteral, BreakStmt, CallExpr, CatchClause,
+    CharLiteral, ClassDecl, ContinueStmt, DictExpr, EnumDecl, EnumVariant,
+    ExprStmt, FloatLiteral, FnDecl, ForStmt, FromImportDecl, Identifier,
+    IfExpr, IfStmt, ImportDecl, IndexExpr, IntLiteral, InterfaceDecl,
+    IsExpr, LambdaExpr, LetStmt, ListExpr, LoopStmt, MatchCase, MatchExpr,
+    ModuleDecl, NoneLiteral, NullishCoalesceExpr, Param, PipeExpr, Program,
+    PropertyAccessExpr, RaiseStmt, RecordDecl, ReturnStmt, SelfExpr,
+    SliceExpr, SpreadExpr, StringLiteral, SuperExpr, TestDecl, TryStmt,
+    TupleExpr, TypeAlias, TypeOfExpr, TypeRef, UnaryExpr, WhileStmt,
+    YieldExpr,
+)
 
 
 class ParseError(Exception):
@@ -155,8 +167,6 @@ class Parser:
         if tok.type == TokenType.NEWLINE:
             self.advance()
             return None
-        if tok.type == TokenType.MATCH:
-            return ExprStmt(expr=self.parse_match_expr(), line=tok.line, column=tok.column)
         return self.parse_expr_stmt()
 
     def parse_fn_decl(self) -> FnDecl:
@@ -355,7 +365,7 @@ class Parser:
         if self.match(TokenType.AS):
             self.advance()
             alias = self.expect(TokenType.IDENT, "Expected alias").value
-        return ImportDecl(module=module, alias=alias, line=tok.line, column=tok.column)
+        return ImportDecl(module=module, names=[module.split('.')[0]], alias=alias, line=tok.line, column=tok.column)
 
     def parse_from_import(self) -> FromImportDecl:
         tok = self.expect(TokenType.FROM)

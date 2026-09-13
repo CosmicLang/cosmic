@@ -1,6 +1,6 @@
 """Lexer/Tokenizer for the Cosmic language."""
 from __future__ import annotations
-from .tokens import Token, TokenType, KEYWORDS, SINGLE_CHAR_TOKENS, KEYWORD_LIST
+from .tokens import Token, TokenType, KEYWORDS, SINGLE_CHAR_TOKENS
 from dataclasses import dataclass
 from typing import Iterator
 

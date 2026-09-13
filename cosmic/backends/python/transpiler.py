@@ -1,6 +1,18 @@
 """Python transpiler for the Cosmic language."""
 from __future__ import annotations
-from ...ast.nodes import *
+from ...ast.nodes import (
+    ASTNode, AsExpr, AssertStmt, AssignStmt, AugAssignStmt, AwaitExpr,
+    BinaryExpr, Block, BoolLiteral, BreakStmt, CallExpr, CharLiteral,
+    ClassDecl, ContinueStmt, DictExpr, EnumDecl, ExprStmt, FloatLiteral,
+    FnDecl, ForStmt, FromImportDecl, FuncType, GeneratorExpr, Identifier,
+    IfExpr, IfStmt, ImportDecl, IndexExpr, IntLiteral, InterfaceDecl,
+    IsExpr, LambdaExpr, LetStmt, ListExpr, LoopStmt, MatchExpr,
+    MethodCallExpr, ModuleDecl, NoneLiteral, NullishCoalesceExpr, Param,
+    PipeExpr, Program, PropertyAccessExpr, RaiseStmt, RecordDecl,
+    ReturnStmt, SelfExpr, SetExpr, SliceExpr, SpreadExpr, StringLiteral,
+    SuperExpr, TestDecl, TryStmt, TupleExpr, TupleType, TypeAlias,
+    TypeOfExpr, TypeRef, UnaryExpr, UnionType, WhileStmt, YieldExpr,
+)
 
 
 class PythonTranspiler:

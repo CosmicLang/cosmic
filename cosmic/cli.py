@@ -4,11 +4,10 @@ import sys
 import os
 import argparse
 import time
-from typing import Any
 
-from ..compiler.pipeline import Compiler, compile_file, compile_source, transpile_to_python
-from ..lexer.lexer import tokenize
-from ..backends.bytecode.compiler import CosmicVM
+from cosmic.compiler.pipeline import Compiler, compile_file, compile_source, transpile_to_python
+from cosmic.lexer.lexer import tokenize
+from cosmic.backends.bytecode.compiler import CosmicVM
 
 
 def cmd_compile(args):
@@ -54,8 +53,9 @@ def cmd_run(args):
 
     if result.bytecode:
         try:
+            instructions, constants = result.bytecode
             vm = CosmicVM()
-            vm.run(result.bytecode)
+            vm.run(instructions, constants)
         except Exception as e:
             print(f"Runtime error: {e}", file=sys.stderr)
             return 1
@@ -175,7 +175,7 @@ def cmd_ast(args):
             source = f.read()
         result = compile_source(source, path)
         if result.ast:
-            from ..REPL import print_ast
+            from cosmic.REPL import print_ast
             print_ast(result.ast)
         else:
             print("Error: No AST generated", file=sys.stderr)
@@ -187,7 +187,7 @@ def cmd_ast(args):
 
 
 def cmd_repl(args):
-    from ..REPL import main
+    from cosmic.REPL import main
     main()
     return 0
 

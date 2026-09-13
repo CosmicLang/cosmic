@@ -1,16 +1,13 @@
 """Cosmic Compiler Pipeline — orchestrates all phases."""
 from __future__ import annotations
-import os
-import sys
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from ..lexer.lexer import tokenize
-from ..lexer.tokens import Token
-from ..parser.parser import Parser, parse
+from ..parser.parser import Parser
 from ..ast.nodes import Program
-from ..types.checker import TypeChecker, type_check
-from ..backends.python.transpiler import PythonTranspiler, transpile
+from ..types.checker import type_check
+from ..backends.python.transpiler import transpile
 from ..backends.bytecode.compiler import BytecodeCompiler, CosmicVM
 
 

@@ -1,7 +1,6 @@
 """Lightweight test framework with assertions and test suites for the Cosmic Standard Library."""
 from __future__ import annotations
 import time
-import traceback
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 

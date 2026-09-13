@@ -2,7 +2,6 @@
 from __future__ import annotations
 from typing import Any, Callable, Iterator, TypeVar, Generic, Optional
 from dataclasses import dataclass, field
-from collections import OrderedDict
 import heapq
 
 T = TypeVar('T')
