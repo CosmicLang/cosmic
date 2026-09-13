@@ -27,7 +27,20 @@ Source (.cos)
 cosmic/
   __init__.py          Public API: compile_source, Compiler, CosmicVM
   __main__.py          python -m cosmic
-  cli.py               CLI dispatcher (argparse)
+  diagnostics.py       Structured diagnostic system (Diagnostic, DiagnosticCollector)
+  cli/                 CLI package — dedicated command modules
+    __init__.py        Exports main()
+    main.py            Pure dispatcher (zero business logic)
+    cmd_run.py         Run command
+    cmd_check.py       Check command (injectable streams for testability)
+    cmd_compile.py     Compile command
+    cmd_transpile.py   Transpile command
+    cmd_bytecode.py    Bytecode command
+    cmd_tokens.py      Tokens command
+    cmd_ast.py         AST command
+    cmd_repl.py        REPL command
+    cmd_version.py     Version command
+    support.py         Shared utilities (file validation, source reading)
   REPL.py              Interactive REPL
   ast/nodes.py         All AST node dataclasses
   lexer/tokens.py      TokenType enum, Token dataclass
@@ -52,6 +65,7 @@ examples/              Example .cos programs
 - **Private**: `_leading_underscore`
 - **AST nodes**: Suffix `Expr`, `Stmt`, `Decl` (e.g., `BinaryExpr`, `FnDecl`)
 - **Visitor methods**: `visit_<NodeType>` / `_compile_<NodeType>`
+- **CLI commands**: `cmd_<name>.py` with `run(args)` entry point
 
 ### Imports
 - **NEVER** use `from X import *` — always explicit imports
@@ -66,10 +80,23 @@ examples/              Example .cos programs
 - Return types are mandatory
 
 ### Error Handling
-- Custom exceptions inherit from `CosmicError` in `stdlib/errors.py`
+- Use structured `Diagnostic` system for compiler errors/warnings
+- Custom runtime exceptions inherit from `CosmicError` in `stdlib/errors.py`
 - Error classes that shadow builtins use trailing underscore: `TypeError_`, `ValueError_`
 - Error classes that don't shadow builtins have no underscore: `DivisionByZeroError`
 - Never silently swallow exceptions — log or re-raise
+
+### Diagnostic System (Kof4j pattern)
+- Every compiler error carries: severity, file, line, column, length, message, code
+- Error codes: `LEX###` (lexer), `PAR###` (parser), `TYP###` (type checker), `CMP###` (compiler)
+- Use `DiagnosticCollector` to accumulate diagnostics through pipeline phases
+- `Diagnostic.format()` produces `file:line:col: severity: message [CODE]`
+
+### CLI Architecture (Kof4j pattern)
+- `main.py` is a pure dispatcher — zero business logic beyond routing
+- Each command is a dedicated `cmd_<name>.py` module with `run(args) -> int`
+- `support.py` holds shared utilities (file validation, source reading)
+- `CmdCheck` accepts injectable `out`/`err` streams for testability
 
 ### Testing
 - Framework: `pytest`
@@ -77,7 +104,7 @@ examples/              Example .cos programs
 - Test class naming: `Test<Feature>`
 - Test method naming: `test_<behavior>`
 - **Every test must assert a concrete value** — no `assert result is None` for output checks
-- E2E tests: compile → execute → assert stdout output
+- E2E tests: compile → execute → assert stdout output (Kof4j pattern)
 - Run: `python -m pytest tests/ -v --tb=short --override-ini="addopts="`
 
 ### Documentation
@@ -100,7 +127,7 @@ examples/              Example .cos programs
 
 ## Commit Protocol
 
-1. All 356+ tests must pass
+1. All 392+ tests must pass
 2. No unused imports
 3. No wildcard imports
 4. No dead code
