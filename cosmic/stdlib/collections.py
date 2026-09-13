@@ -57,12 +57,16 @@ def all_(iterable: Any) -> bool:
 
 
 def min_(*args: Any, key: Callable | None = None) -> Any:
+    if len(args) == 0:
+        raise TypeError("min_() requires at least one argument")
     if len(args) == 1:
         return min(args[0], key=key) if key else min(args[0])
     return min(args, key=key) if key else min(args)
 
 
 def max_(*args: Any, key: Callable | None = None) -> Any:
+    if len(args) == 0:
+        raise TypeError("max_() requires at least one argument")
     if len(args) == 1:
         return max(args[0], key=key) if key else max(args[0])
     return max(args, key=key) if key else max(args)
@@ -82,8 +86,14 @@ def round_(x: float, ndigits: int = 0) -> float:
 
 def flatten(iterable: Any) -> list:
     result = []
+    seen_ids = set()
     for item in iterable:
+        item_id = id(item)
+        if item_id in seen_ids:
+            result.append(item)
+            continue
         if hasattr(item, '__iter__') and not isinstance(item, (str, bytes)):
+            seen_ids.add(item_id)
             result.extend(flatten(item))
         else:
             result.append(item)
@@ -94,11 +104,16 @@ def unique(iterable: Any) -> list:
     seen = set()
     result = []
     for item in iterable:
-        key = item
-        if isinstance(item, list):
-            key = tuple(item)
-        if key not in seen:
-            seen.add(key)
+        try:
+            key = item
+            if isinstance(item, list):
+                key = tuple(item)
+            elif isinstance(item, dict):
+                key = tuple(sorted(item.items()))
+            if key not in seen:
+                seen.add(key)
+                result.append(item)
+        except TypeError:
             result.append(item)
     return result
 

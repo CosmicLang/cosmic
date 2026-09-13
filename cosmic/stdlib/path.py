@@ -121,7 +121,7 @@ def tree(path: str = '.', prefix: str = '', max_depth: int | None = None) -> str
         if entry.is_dir() and (max_depth is None or max_depth > 0):
             extension = '    ' if i == len(entries) - 1 else '│   '
             sub = tree(entry.path, prefix + extension,
-                       max_depth - 1 if max_depth else None)
+                       max_depth - 1 if max_depth is not None else None)
             lines.append(sub)
     return '\n'.join(lines)
 

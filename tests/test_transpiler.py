@@ -14,6 +14,24 @@ def check_valid_python(py_code: str):
     compile(py_code, "<test>", "exec")
 
 
+def run_transpiled(source: str) -> str:
+    """Transpile Cosmic source, execute the Python, capture stdout."""
+    import subprocess, tempfile, os
+    py_code = tc(source)
+    preamble = "println = print\n"
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(preamble + py_code)
+        f.flush()
+        try:
+            result = subprocess.run(
+                ['python', f.name],
+                capture_output=True, text=True, timeout=5
+            )
+            return result.stdout + result.stderr
+        finally:
+            os.unlink(f.name)
+
+
 class TestFunctions:
     def test_simple_function(self):
         code = tc("fn add(a, b) { return a + b }")
@@ -185,3 +203,63 @@ fn bar() {
 }
 """)
         check_valid_python(code)
+
+
+class TestEndToEnd:
+    def test_addition(self):
+        output = run_transpiled("println(2 + 3)")
+        assert "5" in output
+
+    def test_function_call(self):
+        output = run_transpiled("fn add(a, b) { return a + b }\nprintln(add(2, 3))")
+        assert "5" in output
+
+    def test_if_else(self):
+        output = run_transpiled("let x = 10\nif x > 5 { println('yes') } else { println('no') }")
+        assert "yes" in output
+
+    def test_while_loop(self):
+        output = run_transpiled("let i = 0\nwhile i < 5 { i += 1 }\nprintln(i)")
+        assert "5" in output
+
+    def test_for_loop(self):
+        output = run_transpiled("for i in range(3) { println(i) }")
+        assert "0" in output and "1" in output and "2" in output
+
+    def test_list_operations(self):
+        output = run_transpiled("let arr = [1, 2, 3]\nprintln(len(arr))")
+        assert "3" in output
+
+    def test_lambda(self):
+        output = run_transpiled("let f = lambda x => x * 2\nprintln(f(5))")
+        assert "10" in output
+
+    def test_record(self):
+        output = run_transpiled("record Point(x: int, y: int)\nlet p = Point(1, 2)\nprintln(p.x)")
+        assert "1" in output
+
+    def test_enum(self):
+        output = run_transpiled("enum Color { RED, GREEN, BLUE }\nlet c = Color.RED\nprintln(c)")
+        assert "RED" in output
+
+    def test_factorial(self):
+        output = run_transpiled("""
+fn factorial(n) {
+    if n <= 1 { return 1 }
+    return n * factorial(n - 1)
+}
+println(factorial(5))
+""")
+        assert "120" in output
+
+    def test_string_concat(self):
+        output = run_transpiled('println("hello" + " " + "world")')
+        assert "hello world" in output
+
+    def test_pipe(self):
+        output = run_transpiled("fn double(x) { return x * 2 }\nlet result = 5 |> double\nprintln(result)")
+        assert "10" in output
+
+    def test_nullish_coalesce(self):
+        output = run_transpiled("let x: any = none\nlet y = x ?? 42\nprintln(y)")
+        assert "42" in output

@@ -61,6 +61,8 @@ def random_bytes(n: int) -> bytes:
 
 
 def random_int(min_val: int = 0, max_val: int = 2**32 - 1) -> int:
+    if min_val > max_val:
+        raise ValueError(f"random_int: min_val ({min_val}) must be <= max_val ({max_val})")
     return secrets.randbelow(max_val - min_val + 1) + min_val
 
 

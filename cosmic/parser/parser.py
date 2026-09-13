@@ -12,15 +12,15 @@ class ParseError(Exception):
 
 PRECEDENCE = {
     TokenType.OR: 1,
+    TokenType.OR_OR: 1,
     TokenType.AND: 2,
-    TokenType.OR_OR: 2,
     TokenType.AND_AND: 2,
     TokenType.PIPE: 3,
     TokenType.NULLISH: 4,
     TokenType.EQ: 5, TokenType.NEQ: 5,
     TokenType.LT: 6, TokenType.GT: 6,
     TokenType.LTE: 6, TokenType.GTE: 6,
-    TokenType.IS: 6,
+    TokenType.IS: 6, TokenType.AS: 6,
     TokenType.BIT_OR: 7,
     TokenType.BIT_XOR: 8,
     TokenType.BIT_AND: 9,
@@ -62,6 +62,11 @@ class Parser:
     def at(self, *types: TokenType) -> bool:
         return self.peek().type in types
 
+    def consume(self, *types: TokenType) -> Token | None:
+        if self.peek().type in types:
+            return self.advance()
+        return None
+
     def error(self, msg: str) -> ParseError:
         return ParseError(msg, self.peek())
 
@@ -84,7 +89,22 @@ class Parser:
         self.skip_newlines()
         tok = self.peek()
 
-        if tok.type == TokenType.FN or tok.type == TokenType.PUB or tok.type == TokenType.ASYNC:
+        if tok.type == TokenType.FN or tok.type == TokenType.ASYNC or tok.type == TokenType.STATIC:
+            return self.parse_fn_decl()
+        if tok.type == TokenType.PUB:
+            next_type = self.peek(1).type
+            if next_type == TokenType.FN or next_type == TokenType.ASYNC or next_type == TokenType.STATIC:
+                return self.parse_fn_decl()
+            if next_type == TokenType.CLASS:
+                return self.parse_class_decl()
+            if next_type == TokenType.RECORD:
+                return self.parse_record_decl()
+            if next_type == TokenType.ENUM:
+                return self.parse_enum_decl()
+            if next_type == TokenType.INTERFACE:
+                return self.parse_interface_decl()
+            if next_type == TokenType.TYPE:
+                return self.parse_type_alias()
             return self.parse_fn_decl()
         if tok.type == TokenType.CLASS:
             return self.parse_class_decl()
@@ -126,6 +146,8 @@ class Parser:
             return self.parse_raise_stmt()
         if tok.type == TokenType.TRY:
             return self.parse_try_stmt()
+        if tok.type == TokenType.MATCH:
+            return self.parse_match_expr()
         if tok.type == TokenType.ASSERT:
             return self.parse_assert_stmt()
         if tok.type == TokenType.LBRACE:
@@ -133,18 +155,26 @@ class Parser:
         if tok.type == TokenType.NEWLINE:
             self.advance()
             return None
+        if tok.type == TokenType.MATCH:
+            return ExprStmt(expr=self.parse_match_expr(), line=tok.line, column=tok.column)
         return self.parse_expr_stmt()
 
     def parse_fn_decl(self) -> FnDecl:
         is_pub = False
         is_async = False
         is_static = False
-        if self.match(TokenType.PUB):
-            is_pub = True
-            self.advance()
-        if self.match(TokenType.ASYNC):
-            is_async = True
-            self.advance()
+        for _ in range(3):
+            if self.match(TokenType.PUB):
+                is_pub = True
+                self.advance()
+            elif self.match(TokenType.ASYNC):
+                is_async = True
+                self.advance()
+            elif self.match(TokenType.STATIC):
+                is_static = True
+                self.advance()
+            else:
+                break
         tok = self.expect(TokenType.FN)
 
         name_tok = self.expect(TokenType.IDENT, "Expected function name")
@@ -204,11 +234,11 @@ class Parser:
         return Param(name=name, type_ref=type_ref, default=default, line=tok.line, column=tok.column)
 
     def parse_class_decl(self) -> ClassDecl:
-        tok = self.expect(TokenType.CLASS)
         is_pub = False
         if self.match(TokenType.PUB):
             is_pub = True
             self.advance()
+        tok = self.expect(TokenType.CLASS)
         name_tok = self.expect(TokenType.IDENT, "Expected class name")
         bases = []
         if self.match(TokenType.EXTENDS):
@@ -228,11 +258,11 @@ class Parser:
         )
 
     def parse_record_decl(self) -> RecordDecl:
-        tok = self.expect(TokenType.RECORD)
         is_pub = False
         if self.match(TokenType.PUB):
             is_pub = True
             self.advance()
+        tok = self.expect(TokenType.RECORD)
         name_tok = self.expect(TokenType.IDENT, "Expected record name")
         fields = self.parse_params()
         methods = []
@@ -252,11 +282,11 @@ class Parser:
         )
 
     def parse_enum_decl(self) -> EnumDecl:
-        tok = self.expect(TokenType.ENUM)
         is_pub = False
         if self.match(TokenType.PUB):
             is_pub = True
             self.advance()
+        tok = self.expect(TokenType.ENUM)
         name_tok = self.expect(TokenType.IDENT, "Expected enum name")
         self.expect(TokenType.LBRACE, "Expected '{'")
         variants = []
@@ -287,11 +317,11 @@ class Parser:
         return types
 
     def parse_interface_decl(self) -> InterfaceDecl:
-        tok = self.expect(TokenType.INTERFACE)
         is_pub = False
         if self.match(TokenType.PUB):
             is_pub = True
             self.advance()
+        tok = self.expect(TokenType.INTERFACE)
         name_tok = self.expect(TokenType.IDENT, "Expected interface name")
         self.expect(TokenType.LBRACE, "Expected '{'")
         methods = []
@@ -304,11 +334,11 @@ class Parser:
         return InterfaceDecl(name=name_tok.value, methods=methods, is_pub=is_pub, line=tok.line, column=tok.column)
 
     def parse_type_alias(self) -> TypeAlias:
-        tok = self.expect(TokenType.TYPE)
         is_pub = False
         if self.match(TokenType.PUB):
             is_pub = True
             self.advance()
+        tok = self.expect(TokenType.TYPE)
         name_tok = self.expect(TokenType.IDENT, "Expected type name")
         self.expect(TokenType.ASSIGN, "Expected '='")
         type_ref = self.parse_type_ref()
@@ -361,7 +391,9 @@ class Parser:
             self.skip_newlines()
             if self.at(TokenType.RBRACE):
                 break
-            stmts.append(self.parse_statement())
+            stmt = self.parse_statement()
+            if stmt:
+                stmts.append(stmt)
         self.expect(TokenType.RBRACE, "Expected '}'")
         return ModuleDecl(name=name_tok.value, body=stmts, line=tok.line, column=tok.column)
 
@@ -458,7 +490,9 @@ class Parser:
 
     def parse_raise_stmt(self) -> RaiseStmt:
         tok = self.expect(TokenType.RAISE)
-        value = self.parse_expression()
+        value = None
+        if not self.at(TokenType.NEWLINE) and not self.at(TokenType.EOF) and not self.at(TokenType.RBRACE):
+            value = self.parse_expression()
         return RaiseStmt(value=value, line=tok.line, column=tok.column)
 
     def parse_try_stmt(self) -> TryStmt:
@@ -467,7 +501,7 @@ class Parser:
         catch_clauses = []
         finally_body = None
         while self.match(TokenType.CATCH):
-            self.advance()
+            clause_tok = self.advance()
             type_ref = None
             var_name = None
             if not self.at(TokenType.LBRACE):
@@ -475,8 +509,8 @@ class Parser:
                 if self.match(TokenType.IDENT):
                     var_name = self.advance().value
             clause_body = self.parse_block()
-            catch_clauses.append(CatchClause(type_ref=type_ref, var_name=var_name, body=clause_body, line=tok.line, column=tok.column))
-        if self.match(TokenType.FN):
+            catch_clauses.append(CatchClause(type_ref=type_ref, var_name=var_name, body=clause_body, line=clause_tok.line, column=clause_tok.column))
+        if self.match(TokenType.FINALLY):
             self.advance()
             finally_body = self.parse_block()
         return TryStmt(body=body, catch_clauses=catch_clauses, finally_body=finally_body, line=tok.line, column=tok.column)
@@ -490,8 +524,28 @@ class Parser:
             message = self.parse_expression()
         return AssertStmt(condition=condition, message=message, line=tok.line, column=tok.column)
 
+    def parse_match_expr(self) -> MatchExpr:
+        tok = self.expect(TokenType.MATCH)
+        value = self.parse_expression()
+        self.expect(TokenType.LBRACE, "Expected '{' after match value")
+        cases = []
+        while not self.at(TokenType.RBRACE) and not self.at(TokenType.EOF):
+            pattern = self.parse_expression()
+            guard = None
+            if self.match(TokenType.IF):
+                self.advance()
+                guard = self.parse_expression()
+            self.expect(TokenType.DOUBLE_ARROW, "Expected '=>'")
+            body = self.parse_expression()
+            cases.append(MatchCase(pattern=pattern, guard=guard, body=body,
+                                   line=pattern.line, column=pattern.column))
+            if self.match(TokenType.COMMA):
+                self.advance()
+        self.expect(TokenType.RBRACE, "Expected '}'")
+        return MatchExpr(value=value, cases=cases, line=tok.line, column=tok.column)
+
     def parse_block(self) -> Block:
-        self.expect(TokenType.LBRACE, "Expected '{'")
+        open_tok = self.expect(TokenType.LBRACE, "Expected '{'")
         self.skip_newlines()
         stmts = []
         while not self.at(TokenType.RBRACE) and not self.at(TokenType.EOF):
@@ -499,23 +553,27 @@ class Parser:
             if stmt:
                 stmts.append(stmt)
             self.skip_newlines()
-        self.expect(TokenType.RBRACE, "Expected '}'")
-        return Block(statements=stmts, line=self.peek().line, column=self.peek().column)
+        close_tok = self.expect(TokenType.RBRACE, "Expected '}'")
+        return Block(statements=stmts, line=open_tok.line, column=open_tok.column)
 
     def parse_expr_stmt(self) -> ASTNode:
         expr = self.parse_expression()
-        if isinstance(expr, Identifier):
-            tok = self.peek()
-            augmented_ops = {
-                TokenType.PLUS_ASSIGN: '+=', TokenType.MINUS_ASSIGN: '-=',
-                TokenType.STAR_ASSIGN: '*=', TokenType.SLASH_ASSIGN: '/=',
-                TokenType.PERCENT_ASSIGN: '%=', TokenType.POWER_ASSIGN: '**=',
-            }
-            if tok.type in augmented_ops:
-                op = self.advance().value
-                value = self.parse_expression()
-                return AugAssignStmt(target=expr, value=value, op=op,
-                                     line=expr.line, column=expr.column)
+        tok = self.peek()
+        augmented_ops = {
+            TokenType.PLUS_ASSIGN: '+=', TokenType.MINUS_ASSIGN: '-=',
+            TokenType.STAR_ASSIGN: '*=', TokenType.SLASH_ASSIGN: '/=',
+            TokenType.PERCENT_ASSIGN: '%=', TokenType.POWER_ASSIGN: '**=',
+        }
+        if tok.type in augmented_ops:
+            op = self.advance().value
+            value = self.parse_expression()
+            return AugAssignStmt(target=expr, value=value, op=op,
+                                 line=expr.line, column=expr.column)
+        if tok.type == TokenType.ASSIGN:
+            self.advance()
+            value = self.parse_expression()
+            return AssignStmt(target=expr, value=value,
+                              line=expr.line, column=expr.column)
         return ExprStmt(expr=expr, line=expr.line if expr else 0, column=expr.column if expr else 0)
 
     # ─── Expression Parsing (Pratt) ──────────────────────────────────────
@@ -538,6 +596,9 @@ class Parser:
             elif tok.type == TokenType.IS:
                 right_type = self.parse_type_ref()
                 left = IsExpr(value=left, type_ref=right_type, line=op_tok.line, column=op_tok.column)
+            elif tok.type == TokenType.AS:
+                right_type = self.parse_type_ref()
+                left = AsExpr(value=left, type_ref=right_type, line=op_tok.line, column=op_tok.column)
             elif tok.type in (TokenType.EQ, TokenType.NEQ, TokenType.LT, TokenType.GT,
                               TokenType.LTE, TokenType.GTE, TokenType.PLUS, TokenType.MINUS,
                               TokenType.STAR, TokenType.SLASH, TokenType.PERCENT, TokenType.FLOOR_DIV,
@@ -561,10 +622,14 @@ class Parser:
             self.advance()
             operand = self.parse_unary()
             return UnaryExpr(op="-", operand=operand, prefix=True, line=tok.line, column=tok.column)
-        if tok.type == TokenType.NOT or tok.type == TokenType.NOT_NOT:
+        if tok.type == TokenType.NOT:
             self.advance()
             operand = self.parse_unary()
             return UnaryExpr(op="not", operand=operand, prefix=True, line=tok.line, column=tok.column)
+        if tok.type == TokenType.NOT_NOT:
+            self.advance()
+            operand = self.parse_unary()
+            return UnaryExpr(op="not not", operand=operand, prefix=True, line=tok.line, column=tok.column)
         if tok.type == TokenType.BIT_NOT:
             self.advance()
             operand = self.parse_unary()
@@ -581,6 +646,10 @@ class Parser:
             self.advance()
             operand = self.parse_unary()
             return SpreadExpr(value=operand, line=tok.line, column=tok.column)
+        if tok.type == TokenType.TYPEOF:
+            self.advance()
+            operand = self.parse_unary()
+            return TypeOfExpr(value=operand, line=tok.line, column=tok.column)
         return self.parse_postfix()
 
     def parse_postfix(self) -> ASTNode:
@@ -598,15 +667,23 @@ class Parser:
                 if self.match(TokenType.COLON):
                     self.advance()
                     end = self.parse_expression() if not self.at(TokenType.RBRACKET) else None
+                    step = None
+                    if self.match(TokenType.COLON):
+                        self.advance()
+                        step = self.parse_expression() if not self.at(TokenType.RBRACKET) else None
                     self.expect(TokenType.RBRACKET)
-                    expr = SliceExpr(object=expr, start=None, end=end, line=expr.line, column=expr.column)
+                    expr = SliceExpr(object=expr, start=None, end=end, step=step, line=expr.line, column=expr.column)
                 else:
                     index = self.parse_expression()
                     if self.match(TokenType.COLON):
                         self.advance()
                         end = self.parse_expression() if not self.at(TokenType.RBRACKET) else None
+                        step = None
+                        if self.match(TokenType.COLON):
+                            self.advance()
+                            step = self.parse_expression() if not self.at(TokenType.RBRACKET) else None
                         self.expect(TokenType.RBRACKET)
-                        expr = SliceExpr(object=expr, start=index, end=end, line=expr.line, column=expr.column)
+                        expr = SliceExpr(object=expr, start=index, end=end, step=step, line=expr.line, column=expr.column)
                     else:
                         self.expect(TokenType.RBRACKET)
                         expr = IndexExpr(object=expr, index=index, line=expr.line, column=expr.column)
@@ -758,6 +835,8 @@ class Parser:
             return LambdaExpr(params=params, body=body, line=tok.line, column=tok.column)
         if tok.type == TokenType.IF:
             return self.parse_if_expr()
+        if tok.type == TokenType.MATCH:
+            return self.parse_match_expr()
 
         raise self.error(f"Unexpected token: {tok.type.name} ({tok.value!r})")
 

@@ -175,7 +175,14 @@ class PythonTranspiler:
         return "self"
 
     def visit_SuperExpr(self, node: SuperExpr) -> str:
-        method = "__init__" if node.method == "init" else node.method
+        method_map = {
+            "init": "__init__", "str": "__str__", "repr": "__repr__",
+            "eq": "__eq__", "lt": "__lt__", "le": "__le__",
+            "gt": "__gt__", "ge": "__ge__", "hash": "__hash__",
+            "len": "__len__", "getitem": "__getitem__", "setitem": "__setitem__",
+            "iter": "__iter__", "next": "__next__", "call": "__call__",
+        }
+        method = method_map.get(node.method, node.method)
         return f"super().{method}"
 
     def visit_BinaryExpr(self, node: BinaryExpr) -> str:
@@ -183,9 +190,11 @@ class PythonTranspiler:
         left = self._emit_expr(node.left)
         right = self._emit_expr(node.right)
 
-        if isinstance(node.left, (BinaryExpr, IfExpr, LambdaExpr)):
+        parenthesize = (BinaryExpr, IfExpr, LambdaExpr, UnaryExpr,
+                        PipeExpr, NullishCoalesceExpr, AwaitExpr, YieldExpr)
+        if isinstance(node.left, parenthesize):
             left = f"({left})"
-        if isinstance(node.right, (BinaryExpr, IfExpr, LambdaExpr)):
+        if isinstance(node.right, parenthesize):
             right = f"({right})"
 
         return f"{left} {op} {right}"
@@ -195,6 +204,8 @@ class PythonTranspiler:
         if node.prefix:
             if node.op == "not":
                 return f"not {operand}"
+            if node.op == "not not":
+                return f"not not {operand}"
             return f"{node.op}{operand}"
         return f"{operand}{node.op}"
 
@@ -334,7 +345,7 @@ class PythonTranspiler:
     def visit_NullishCoalesceExpr(self, node: NullishCoalesceExpr) -> str:
         left = self._emit_expr(node.left)
         right = self._emit_expr(node.right)
-        return f"({left}) if ({left}) is not None else ({right})"
+        return f"(lambda _l: _l if _l is not None else ({right}))({left})"
 
     def visit_SpreadExpr(self, node: SpreadExpr) -> str:
         val = self._emit_expr(node.value)
@@ -354,7 +365,7 @@ class PythonTranspiler:
         return f"await {val}"
 
     def visit_YieldExpr(self, node: YieldExpr) -> str:
-        if node.value:
+        if node.value is not None:
             val = self._emit_expr(node.value)
             return f"yield {val}"
         return "yield"
@@ -398,7 +409,7 @@ class PythonTranspiler:
         return ""
 
     def visit_ReturnStmt(self, node: ReturnStmt) -> str:
-        if node.value:
+        if node.value is not None:
             val = self._emit_expr(node.value)
             self._line(f"return {val}")
         else:
@@ -459,7 +470,7 @@ class PythonTranspiler:
         return ""
 
     def visit_RaiseStmt(self, node: RaiseStmt) -> str:
-        if node.value:
+        if node.value is not None:
             val = self._emit_expr(node.value)
             self._line(f"raise {val}")
         else:
@@ -563,6 +574,8 @@ class PythonTranspiler:
                 s = f.name
                 if f.type_ref:
                     s += f": {self._type_ref(f.type_ref)}"
+                else:
+                    s += ": Any"
                 if f.default is not None:
                     s += f" = {self._emit_expr(f.default)}"
                 self._line(s)

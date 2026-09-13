@@ -29,7 +29,6 @@ class TestSuite:
         total = len(self._tests)
         passed = 0
         failed = 0
-        skipped = 0
         start = time.time()
 
         for name, func in self._tests:
@@ -56,7 +55,7 @@ class TestSuite:
 
         total_duration = time.time() - start
         if verbose:
-            print(f"\n  {passed} passed, {failed} failed, {skipped} skipped in {total_duration*1000:.1f}ms")
+            print(f"\n  {passed} passed, {failed} failed in {total_duration*1000:.1f}ms")
         return self._results
 
     def report(self) -> str:

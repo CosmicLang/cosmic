@@ -65,6 +65,8 @@ class TokenType(Enum):
     CATCH = auto()
     RAISE = auto()
     YIELD = auto()
+    FINALLY = auto()
+    TYPEOF = auto()
     STRUCT = auto()
     UNION = auto()
     TYPE = auto()
@@ -177,6 +179,8 @@ KEYWORDS = {
     'catch': TokenType.CATCH,
     'raise': TokenType.RAISE,
     'yield': TokenType.YIELD,
+    'finally': TokenType.FINALLY,
+    'typeof': TokenType.TYPEOF,
     'struct': TokenType.STRUCT,
     'union': TokenType.UNION,
     'type': TokenType.TYPE,

@@ -2,7 +2,7 @@
 from __future__ import annotations
 import time
 import datetime as _dt
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 
@@ -146,18 +146,18 @@ class DateTime:
         return hash(self._dt_obj)
 
 
-@dataclass(frozen=True)
+@dataclass
 class Timer:
-    start_time: float = 0.0
-    end_time: float = 0.0
-
-    def start(self) -> Timer:
-        return Timer(start_time=time.perf_counter())
+    start_time: float = field(default_factory=time.perf_counter)
+    _end_time: float | None = None
 
     def stop(self) -> float:
-        return time.perf_counter() - self.start_time
+        self._end_time = time.perf_counter()
+        return self._end_time - self.start_time
 
     def elapsed(self) -> float:
+        if self._end_time is not None:
+            return self._end_time - self.start_time
         return time.perf_counter() - self.start_time
 
 

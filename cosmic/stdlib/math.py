@@ -31,6 +31,8 @@ trunc = math.trunc
 gcd = math.gcd
 
 def lcm(*args: int) -> int:
+    if not args:
+        raise ValueError("lcm() requires at least one argument")
     result = args[0]
     for n in args[1:]:
         result = result * n // math.gcd(result, n)
@@ -49,6 +51,8 @@ def lerp(start: float, end: float, t: float) -> float:
     return start + (end - start) * t
 
 def map_range(value: float, in_min: float, in_max: float, out_min: float, out_max: float) -> float:
+    if in_max == in_min:
+        raise ValueError("map_range: in_min and in_max must not be equal")
     return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 def approx_eq(a: float, b: float, tolerance: float = 1e-9) -> bool:
@@ -161,6 +165,8 @@ def bit_count(n: int) -> int:
     return bin(n).count('1')
 
 def gcd_list(numbers: list[int]) -> int:
+    if not numbers:
+        raise ValueError("gcd_list() requires at least one number")
     from functools import reduce
     return reduce(math.gcd, numbers)
 

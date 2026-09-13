@@ -101,3 +101,25 @@ class TestLambda:
     def test_lambda(self):
         tm, errs = tc("let f = lambda x => x + 1")
         assert len(errs) == 0
+
+
+class TestNegativeCases:
+    def test_undefined_variable(self):
+        tm, errs = tc("println(x)")
+        assert len(errs) > 0
+
+    def test_undefined_function_call(self):
+        tm, errs = tc("nonexistent()")
+        assert len(errs) > 0
+
+    def test_redefined_variable(self):
+        tm, errs = tc("let x = 1\nlet x = 2")
+        assert len(errs) == 0  # redefinition allowed, shadowing is fine
+
+    def test_if_non_bool_condition(self):
+        tm, errs = tc("if 42 { }")
+        assert len(errs) > 0
+
+    def test_while_non_bool_condition(self):
+        tm, errs = tc("while 42 { }")
+        assert len(errs) > 0

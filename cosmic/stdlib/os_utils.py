@@ -51,8 +51,12 @@ def disk_usage(path: str = '/') -> dict[str, int]:
     return {'total': total, 'used': used, 'free': free}
 
 
-def pid() -> int:
+def getpid() -> int:
+    """Return the current process ID."""
     return os.getpid()
+
+
+pid = getpid
 
 
 def hostname() -> str:
@@ -109,10 +113,6 @@ def chmod(path: str, mode: int) -> None:
 
 def chown(path: str, uid: int, gid: int) -> None:
     os.chown(path, uid, gid)
-
-
-def getpid() -> int:
-    return os.getpid()
 
 
 def getppid() -> int:
