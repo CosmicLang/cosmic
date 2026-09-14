@@ -1,0 +1,26 @@
+[package]
+name = "cosmic"
+version = "0.1.0"
+edition = "2021"
+authors = ["Cosmic Language Team"]
+description = "A modern, elegant, statically-typed programming language"
+license = "MIT"
+
+[[bin]]
+name = "cosmic"
+path = "src/main.rs"
+
+[lib]
+name = "cosmic_lib"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+anyhow = "1.0"
+thiserror = "1.0"
+ariadne = "0.4"
+miette = { version = "7.0", features = ["fancy"] }
+
+[dev-dependencies]
+tempfile = "3.10"
+pretty_assertions = "1.4"

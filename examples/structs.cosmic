@@ -1,0 +1,16 @@
+// Structs and Enums in Cosmic
+struct Point {
+    x: Float
+    y: Float
+}
+
+enum Color {
+    Red
+    Green
+    Blue
+}
+
+fn main() {
+    let p = Point { x: 1.0, y: 2.0 };
+    let c = Color.Red;
+}
