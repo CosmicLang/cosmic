@@ -286,7 +286,7 @@ impl Lexer {
                 c if c.is_alphabetic() || c == '_' => self.read_ident(),
                 _ => return Err(format!("Unexpected character: '{}'", ch)),
             };
-            let len = self.col - col + 1;
+            let len = self.col - col;
             tokens.push(Spanned { value: token, line, col, len });
         }
         Ok(tokens)

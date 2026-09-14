@@ -209,9 +209,9 @@ impl Parser {
     fn precedence(op: &BinOp) -> u8 {
         match op {
             BinOp::Or => 1, BinOp::And => 2,
-            BinOp::BitOr => 3, BinOp::BitXor => 4, BinOp::BitAnd => 5,
-            BinOp::Eq | BinOp::Ne => 6,
-            BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => 7,
+            BinOp::Eq | BinOp::Ne => 3,
+            BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => 4,
+            BinOp::BitAnd => 5, BinOp::BitXor => 6, BinOp::BitOr => 7,
             BinOp::Shl | BinOp::Shr => 8,
             BinOp::Add | BinOp::Sub => 9,
             BinOp::Mul | BinOp::Div | BinOp::Mod => 10,
@@ -253,7 +253,9 @@ impl Parser {
             let prec = Self::precedence(&op);
             if prec < min_prec { break; }
             self.advance(); // consume the operator only now
-            let right = self.parse_expression_precedence(prec + 1)?;
+            // Right-associative for Pow (use prec, not prec+1)
+            let right_min_prec = if op == BinOp::Pow { prec } else { prec + 1 };
+            let right = self.parse_expression_precedence(right_min_prec)?;
             let (line, col, len) = (left.line, left.col, left.len);
             left = Spanned { value: Ast::BinaryOp { op, left: Box::new(left), right: Box::new(right) }, line, col, len };
         }

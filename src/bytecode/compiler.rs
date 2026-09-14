@@ -10,6 +10,11 @@ struct Local {
     slot: u16,
 }
 
+struct LoopCtx {
+    start: usize,
+    breaks: Vec<usize>,
+}
+
 pub struct BytecodeCompiler {
     chunk: Chunk,
     locals: Vec<Local>,
@@ -17,7 +22,7 @@ pub struct BytecodeCompiler {
     globals: HashMap<String, u16>,
     functions: HashMap<String, (usize, u8)>,
     chunks: Vec<Chunk>,
-    loop_stack: Vec<usize>,
+    loop_stack: Vec<LoopCtx>,
 }
 
 
@@ -64,8 +69,7 @@ impl BytecodeCompiler {
                         for (i, param) in params.iter().enumerate() {
                             self.locals.push(Local { name: param.name.clone(), depth: 1, slot: i as u16 });
                         }
-                        self.compile_statement(body)?;
-                        self.emit(Opcode::Nil, 0);
+                        self.compile_expression(body)?;
                         self.emit(Opcode::Return, 0);
 
                         self.chunks[*idx] = std::mem::replace(&mut self.chunk, old);
@@ -123,8 +127,10 @@ impl BytecodeCompiler {
     fn declare_local(&mut self, name: &str, line: u16) -> Result<u16, String> {
         for local in self.locals.iter().rev() {
             if local.depth == self.scope_depth {
-                return Err(format!("Variable '{}' already declared at line {}", name, line));
-            }
+                if local.name == name {
+                    return Err(format!("Variable '{}' already declared at line {}", name, line));
+                }
+            } else { break; }
         }
         let slot = self.locals.len() as u16;
         self.locals.push(Local { name: name.to_string(), depth: self.scope_depth, slot });
@@ -165,6 +171,7 @@ impl BytecodeCompiler {
                         self.emit(Opcode::Nil, line);
                     }
                     self.emit(Opcode::SetLocal(slot), line);
+                    self.emit(Opcode::Pop, line);
                 } else {
                     let name_idx = self.chunk.add_constant(Value::Str(name.clone()));
                     if let Some(val) = value {
@@ -199,8 +206,7 @@ impl BytecodeCompiler {
                     for (i, p) in params.iter().enumerate() {
                         self.locals.push(Local { name: p.name.clone(), depth: 1, slot: i as u16 });
                     }
-                    self.compile_statement(body)?;
-                    self.emit(Opcode::Nil, 0);
+                    self.compile_expression(body)?;
                     self.emit(Opcode::Return, 0);
 
                     self.chunks[func_idx] = std::mem::replace(&mut self.chunk, old);
@@ -210,6 +216,7 @@ impl BytecodeCompiler {
                     let slot = self.declare_local(name, line)?;
                     self.emit_constant(Value::Func(func_idx, arity, 0), line);
                     self.emit(Opcode::SetLocal(slot), line);
+                    self.emit(Opcode::Pop, line);
                 }
                 Ok(())
             }
@@ -243,10 +250,12 @@ impl BytecodeCompiler {
                     Ast::Ident(name) => {
                         if let Some(slot) = self.resolve_local(name) {
                             self.emit(Opcode::SetLocal(slot), line);
+                            self.emit(Opcode::Pop, line);
                         } else {
                             let name_idx = self.chunk.add_constant(Value::Str(name.clone()));
                             self.globals.insert(name.clone(), name_idx);
                             self.emit(Opcode::SetGlobal(name_idx), line);
+                            self.emit(Opcode::Pop, line);
                         }
                     }
                     Ast::Index { object, index } => {
@@ -263,14 +272,18 @@ impl BytecodeCompiler {
                 self.compile_expression(condition)?;
                 let exit_jump = self.emit(Opcode::JumpIfFalse(0), line);
                 self.emit(Opcode::Pop, line);
-                self.loop_stack.push(loop_start);
+                self.loop_stack.push(LoopCtx { start: loop_start, breaks: Vec::new() });
                 self.compile_expression(body)?;
                 self.emit(Opcode::Pop, line);
                 let back = (self.chunk.code.len() - loop_start + 3) as u16;
                 self.emit(Opcode::Loop(back), line);
-                self.loop_stack.pop();
+                let loop_ctx = self.loop_stack.pop().unwrap();
                 self.patch_jump(exit_jump);
+                self.emit(Opcode::Pop, line);
                 self.emit(Opcode::Nil, line);
+                for break_offset in &loop_ctx.breaks {
+                    self.patch_jump(*break_offset);
+                }
                 Ok(())
             }
             Ast::Block(stmts) => {
@@ -280,19 +293,17 @@ impl BytecodeCompiler {
                 Ok(())
             }
             Ast::Break => {
-                if let Some(&_start) = self.loop_stack.last() {
+                if self.loop_stack.last().is_some() {
                     let jump = self.emit(Opcode::Jump(0), line);
-                    // We'll patch this after the loop ends - for now store offset
-                    self.chunk.code[jump + 1] = 0xFF;
-                    self.chunk.code[jump + 2] = 0xFF;
+                    self.loop_stack.last_mut().unwrap().breaks.push(jump);
                 } else {
                     return Err(format!("'break' outside loop at line {}", line));
                 }
                 Ok(())
             }
             Ast::Continue => {
-                if let Some(&start) = self.loop_stack.last() {
-                    let back = (self.chunk.code.len() - start + 3) as u16;
+                if let Some(loop_ctx) = self.loop_stack.last() {
+                    let back = (self.chunk.code.len() - loop_ctx.start + 3) as u16;
                     self.emit(Opcode::Loop(back), line);
                 } else {
                     return Err(format!("'continue' outside loop at line {}", line));
@@ -409,6 +420,8 @@ impl BytecodeCompiler {
                     self.patch_jump(end_jump);
                 } else {
                     self.patch_jump(then_jump);
+                    self.emit(Opcode::Pop, line);
+                    self.emit(Opcode::Nil, line);
                 }
                 Ok(())
             }
@@ -470,12 +483,15 @@ impl BytecodeCompiler {
             }
             Ast::Loop(body) => {
                 let loop_start = self.chunk.code.len();
-                self.loop_stack.push(loop_start);
+                self.loop_stack.push(LoopCtx { start: loop_start, breaks: Vec::new() });
                 self.compile_expression(body)?;
                 self.emit(Opcode::Pop, line);
                 let back = (self.chunk.code.len() - loop_start + 3) as u16;
                 self.emit(Opcode::Loop(back), line);
-                self.loop_stack.pop();
+                let loop_ctx = self.loop_stack.pop().unwrap();
+                for break_offset in &loop_ctx.breaks {
+                    self.patch_jump(*break_offset);
+                }
                 self.emit(Opcode::Nil, line);
                 Ok(())
             }

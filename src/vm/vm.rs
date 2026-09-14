@@ -63,11 +63,13 @@ impl Vm {
 
     fn register_natives(&mut self) {
         self.natives.insert("println".into(), Value::NativeFn(|args| {
-            let _msg: String = args.iter().map(|a| a.to_string_value()).collect::<Vec<_>>().join(" ");
-            // println will be handled by the VM
+            let msg: String = args.iter().map(|a| a.to_string_value()).collect::<Vec<_>>().join(" ");
+            println!("{}", msg);
             Value::Nil
         }));
-        self.natives.insert("print".into(), Value::NativeFn(|_args| {
+        self.natives.insert("print".into(), Value::NativeFn(|args| {
+            let msg: String = args.iter().map(|a| a.to_string_value()).collect::<Vec<_>>().join(" ");
+            print!("{}", msg);
             Value::Nil
         }));
     }
@@ -661,14 +663,7 @@ impl Vm {
         Ok(self.stack.pop().unwrap_or(Value::Nil))
     }
 
-    fn handle_native_call(&mut self, args: &[Value], _result: &Value, _chunk_idx: usize, _ip: usize) -> Result<(), RuntimeError> {
-        // println prints and returns nil
-        if !args.is_empty() {
-            let output = args.iter().map(|a| a.to_string_value()).collect::<Vec<_>>().join(" ");
-            println!("{}", output);
-            self.output.push_str(&output);
-            self.output.push('\n');
-        }
+    fn handle_native_call(&mut self, _args: &[Value], _result: &Value, _chunk_idx: usize, _ip: usize) -> Result<(), RuntimeError> {
         Ok(())
     }
 
