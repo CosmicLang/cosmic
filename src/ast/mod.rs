@@ -98,6 +98,7 @@ pub enum Ast {
         path: Vec<String>,
         alias: Option<String>,
     },
+    Array(Vec<Spanned<Ast>>),
     Module(Vec<Spanned<Ast>>),
 }
 

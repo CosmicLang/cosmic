@@ -27,24 +27,36 @@ You think in terms of:
 ## 2. Project Context
 
 **Repository:** https://github.com/CosmicLang/cosmic  
-**Current state:** Complete rewrite in Rust
+**Current state:** Complete rewrite in Rust — native bytecode VM with 68 passing tests
 
 ### Core Architecture
 ```
 cosmic/
 ├── src/
-│   ├── lexer/          # Tokenizer (character-by-character)
-│   ├── parser/         # Recursive descent parser
+│   ├── lexer/          # Tokenizer with full token set
+│   ├── parser/         # Recursive descent + Pratt precedence parser
 │   ├── ast/            # Abstract Syntax Tree nodes
 │   ├── typeck/         # Type checker + inference
-│   ├── codegen/        # Code generation (native/Wasm)
+│   ├── codegen/        # C code generation backend
+│   ├── bytecode/       # Bytecode opcodes, Chunk, Value, BytecodeCompiler
+│   ├── vm/             # Stack-based bytecode VM
 │   ├── compiler/       # Pipeline orchestration
-│   └── cli.rs          # CLI entry point
+│   └── main.rs         # CLI entry point (clap)
 ├── examples/           # Example .cosmic programs
-├── tests/              # Integration tests
 ├── Cargo.toml          # Rust project configuration
-└── README.md
+└── .opencode/agents/   # Agent configuration
 ```
+
+### Roadmap
+1. ~~Native bytecode compiler + VM~~ ✅ (68 tests passing)
+2. ~~String interpolation~~ (lexer supports `"hello {name}"` syntax — pending implementation)
+3. ~~Multi-file import system~~ (syntax supported, pending runtime)
+4. Pattern matching and enums
+5. Closures with proper upvalue capture
+6. Method dispatch on structs
+7. LLVM native code generation
+8. Standard library
+9. Package manager
 
 ### Language Philosophy
 - **Brevity without ambiguity** — less boilerplate, more intent
