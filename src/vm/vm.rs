@@ -488,9 +488,10 @@ impl Vm {
 
                 // === Structs ===
                 Opcode::NewStruct(field_count) => {
-                    let mut fields = Vec::with_capacity(field_count as usize);
+                    let mut fields: Vec<(String, Value)> = Vec::with_capacity(field_count as usize);
                     for _ in 0..field_count {
-                        fields.push(self.stack.pop().unwrap());
+                        let val = self.stack.pop().unwrap();
+                        fields.push((String::new(), val));
                     }
                     fields.reverse();
                     self.stack.push(Value::Instance(0, fields));
@@ -503,14 +504,8 @@ impl Vm {
                     };
                     match obj {
                         Value::Instance(_, fields) => {
-                            // Simple field access by index (field name → index mapping needed)
-                            // For now, try to parse index from field name
-                            if let Ok(index) = field_name.parse::<usize>() {
-                                if index < fields.len() {
-                                    self.stack.push(fields[index].clone());
-                                } else {
-                                    self.stack.push(Value::Nil);
-                                }
+                            if let Some((_, val)) = fields.iter().find(|(name, _)| name == &field_name) {
+                                self.stack.push(val.clone());
                             } else {
                                 self.stack.push(Value::Nil);
                             }
@@ -538,10 +533,8 @@ impl Vm {
                     };
                     match &mut obj {
                         Value::Instance(_, fields) => {
-                            if let Ok(index) = field_name.parse::<usize>() {
-                                if index < fields.len() {
-                                    fields[index] = val.clone();
-                                }
+                            if let Some((_, f)) = fields.iter_mut().find(|(name, _)| name == &field_name) {
+                                *f = val.clone();
                             }
                         }
                         _ => return self.error(chunk_idx, ip, &format!("Cannot set field on {}", obj.type_name())),
@@ -875,7 +868,7 @@ mod tests {
 
     #[test]
     fn test_vm_power() {
-        let result = run_source("2 ^ 10;").unwrap();
+        let result = run_source("2 ** 10;").unwrap();
         assert_eq!(result, Value::Int(1024));
     }
 
@@ -917,7 +910,89 @@ mod tests {
         let result = run_source("0xF0 | 0x0F;").unwrap();
         assert_eq!(result, Value::Int(0xFF));
 
+        let result = run_source("0xFF ^ 0x0F;").unwrap();
+        assert_eq!(result, Value::Int(0xF0));
+
         let result = run_source("1 << 4;").unwrap();
         assert_eq!(result, Value::Int(16));
+    }
+
+    #[test]
+    fn test_vm_compound_assignment() {
+        let result = run_source("let x = 10; x += 5; x;").unwrap();
+        assert_eq!(result, Value::Int(15));
+
+        let result = run_source("let x = 10; x -= 3; x;").unwrap();
+        assert_eq!(result, Value::Int(7));
+
+        let result = run_source("let x = 10; x *= 2; x;").unwrap();
+        assert_eq!(result, Value::Int(20));
+
+        let result = run_source("let x = 10; x /= 2; x;").unwrap();
+        assert_eq!(result, Value::Int(5));
+    }
+
+    #[test]
+    fn test_vm_power_two_star() {
+        let result = run_source("2 ** 10;").unwrap();
+        assert_eq!(result, Value::Int(1024));
+
+        let result = run_source("3 ** 3;").unwrap();
+        assert_eq!(result, Value::Int(27));
+    }
+
+    #[test]
+    fn test_vm_for_loop() {
+        let result = run_source("let sum = 0; for x in [1, 2, 3, 4, 5] { sum += x; } sum;").unwrap();
+        assert_eq!(result, Value::Int(15));
+    }
+
+    #[test]
+    fn test_vm_match() {
+        let result = run_source(r#"
+            match 2 {
+                1 => "one",
+                2 => "two",
+                3 => "three",
+                _ => "other"
+            };
+        "#).unwrap();
+        assert_eq!(result, Value::Str("two".into()));
+    }
+
+    #[test]
+    fn test_vm_match_fallthrough() {
+        let result = run_source(r#"
+            match 99 {
+                1 => "one",
+                2 => "two",
+                _ => "default"
+            };
+        "#).unwrap();
+        assert_eq!(result, Value::Str("default".into()));
+    }
+
+    #[test]
+    fn test_vm_match_first_arm() {
+        let result = run_source(r#"
+            match 1 {
+                1 => "first",
+                2 => "second",
+                _ => "other"
+            };
+        "#).unwrap();
+        assert_eq!(result, Value::Str("first".into()));
+    }
+
+    #[test]
+    fn test_vm_match_last_literal() {
+        let result = run_source(r#"
+            match 3 {
+                1 => "one",
+                2 => "two",
+                3 => "three"
+            };
+        "#).unwrap();
+        assert_eq!(result, Value::Str("three".into()));
     }
 }

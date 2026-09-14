@@ -15,8 +15,8 @@ pub enum Value {
     Func(usize, u8, u8),
     /// Closure (function index, captured upvalues)
     Closure(usize, Vec<Upvalue>),
-    /// Struct instance (struct definition index, fields)
-    Instance(usize, Vec<Value>),
+    /// Struct instance (struct definition index, named fields)
+    Instance(usize, Vec<(String, Value)>),
     /// Array of values
     Array(Vec<Value>),
 }

@@ -147,6 +147,12 @@ impl BytecodeCompiler {
         self.chunk.code[offset + 2] = ((jump >> 8) & 0xFF) as u8;
     }
 
+    fn patch_jump_to(&mut self, offset: usize, target: usize) {
+        let jump = (target - offset - 3) as u16;
+        self.chunk.code[offset + 1] = (jump & 0xFF) as u8;
+        self.chunk.code[offset + 2] = ((jump >> 8) & 0xFF) as u8;
+    }
+
     fn compile_statement_last(&mut self, stmt: &Spanned<Ast>) -> Result<(), String> {
         // Like compile_statement but doesn't pop the last expression value
         let _line = stmt.line as u16;
@@ -223,7 +229,10 @@ impl BytecodeCompiler {
             Ast::Struct { name, fields, .. } => {
                 if self.scope_depth == 0 {
                     let name_idx = self.chunk.add_constant(Value::Str(name.clone()));
-                    self.emit_constant(Value::Instance(fields.len(), vec![]), line);
+                    let field_names: Vec<(String, Value)> = fields.iter()
+                        .map(|f| (f.name.clone(), Value::Nil))
+                        .collect();
+                    self.emit_constant(Value::Instance(0, field_names), line);
                     self.emit(Opcode::DefineGlobal(name_idx), line);
                 }
                 Ok(())
@@ -275,6 +284,75 @@ impl BytecodeCompiler {
                 self.loop_stack.push(LoopCtx { start: loop_start, breaks: Vec::new() });
                 self.compile_expression(body)?;
                 self.emit(Opcode::Pop, line);
+                let back = (self.chunk.code.len() - loop_start + 3) as u16;
+                self.emit(Opcode::Loop(back), line);
+                let loop_ctx = self.loop_stack.pop().unwrap();
+                self.patch_jump(exit_jump);
+                self.emit(Opcode::Pop, line);
+                self.emit(Opcode::Nil, line);
+                for break_offset in &loop_ctx.breaks {
+                    self.patch_jump(*break_offset);
+                }
+                Ok(())
+            }
+            Ast::For { var, iter, body } => {
+                // Desugar for x in iter { body } into:
+                //   let __iter = iter;
+                //   let __idx = 0;
+                //   while __idx < ArrayLen(__iter) {
+                //       let x = __iter[__idx];
+                //       body;
+                //       __idx += 1;
+                //   }
+                // Use global variables to avoid main-frame stack slot issues.
+
+                // __iter = iter
+                self.compile_expression(iter)?;
+                let iter_name_idx = self.chunk.add_constant(Value::Str("__iter_for".into()));
+                self.emit(Opcode::DefineGlobal(iter_name_idx), line);
+
+                // __idx = 0
+                let zero_idx = self.chunk.add_constant(Value::Int(0));
+                self.emit(Opcode::Const(zero_idx), line);
+                let idx_name_idx = self.chunk.add_constant(Value::Str("__idx_for".into()));
+                self.emit(Opcode::DefineGlobal(idx_name_idx), line);
+
+                let loop_start = self.chunk.code.len();
+
+                // while __idx < ArrayLen(__iter)
+                let idx_g1 = self.chunk.add_constant(Value::Str("__idx_for".into()));
+                self.emit(Opcode::GetGlobal(idx_g1), line);
+                let iter_g1 = self.chunk.add_constant(Value::Str("__iter_for".into()));
+                self.emit(Opcode::GetGlobal(iter_g1), line);
+                self.emit(Opcode::ArrayLen, line);
+                self.emit(Opcode::Lt, line);
+                let exit_jump = self.emit(Opcode::JumpIfFalse(0), line);
+                self.emit(Opcode::Pop, line);
+
+                // x = __iter[__idx]
+                let iter_g2 = self.chunk.add_constant(Value::Str("__iter_for".into()));
+                self.emit(Opcode::GetGlobal(iter_g2), line);
+                let idx_g2 = self.chunk.add_constant(Value::Str("__idx_for".into()));
+                self.emit(Opcode::GetGlobal(idx_g2), line);
+                self.emit(Opcode::GetIndex, line);
+                let var_name_idx = self.chunk.add_constant(Value::Str(var.clone()));
+                self.emit(Opcode::DefineGlobal(var_name_idx), line);
+
+                // body
+                self.loop_stack.push(LoopCtx { start: loop_start, breaks: Vec::new() });
+                self.compile_expression(body)?;
+                self.emit(Opcode::Pop, line);
+
+                // __idx += 1
+                let idx_g3 = self.chunk.add_constant(Value::Str("__idx_for".into()));
+                self.emit(Opcode::GetGlobal(idx_g3), line);
+                let one_idx = self.chunk.add_constant(Value::Int(1));
+                self.emit(Opcode::Const(one_idx), line);
+                self.emit(Opcode::Add, line);
+                let idx_g4 = self.chunk.add_constant(Value::Str("__idx_for".into()));
+                self.emit(Opcode::SetGlobal(idx_g4), line);
+                self.emit(Opcode::Pop, line);
+
                 let back = (self.chunk.code.len() - loop_start + 3) as u16;
                 self.emit(Opcode::Loop(back), line);
                 let loop_ctx = self.loop_stack.pop().unwrap();
@@ -422,6 +500,63 @@ impl BytecodeCompiler {
                     self.patch_jump(then_jump);
                     self.emit(Opcode::Pop, line);
                     self.emit(Opcode::Nil, line);
+                }
+                Ok(())
+            }
+            Ast::Match { expr, arms } => {
+                self.compile_expression(expr)?;
+                let match_val_idx = self.chunk.add_constant(Value::Str("__match_val".into()));
+                self.emit(Opcode::DefineGlobal(match_val_idx), line);
+
+                let mut then_jumps: Vec<usize> = Vec::new();
+
+                for (i, arm) in arms.iter().enumerate() {
+                    match &arm.pattern {
+                        Pattern::Wildcard => {
+                            // Wildcard: pop any leftover condition, compile body
+                            self.emit(Opcode::Pop, line);
+                            self.compile_expression(&arm.body)?;
+                        }
+                        Pattern::Literal(lit) => {
+                            let mv_g = self.chunk.add_constant(Value::Str("__match_val".into()));
+                            self.emit(Opcode::GetGlobal(mv_g), line);
+                            match lit {
+                                Literal::Integer(n) => { self.emit_constant(Value::Int(*n), line); }
+                                Literal::Float(f) => { self.emit_constant(Value::Float(*f), line); }
+                                Literal::String(s) => { self.emit_constant(Value::Str(s.clone()), line); }
+                                Literal::Bool(b) => {
+                                    if *b { self.emit(Opcode::True, line); }
+                                    else { self.emit(Opcode::False, line); }
+                                }
+                                Literal::Char(c) => { self.emit_constant(Value::Str(c.to_string()), line); }
+                                Literal::Null => { self.emit(Opcode::Nil, line); }
+                            }
+                            self.emit(Opcode::Eq, line);
+                            let then_jump = self.emit(Opcode::JumpIfFalse(0), line);
+                            // Pattern matched: pop true, compile body, jump to end
+                            self.emit(Opcode::Pop, line);
+                            self.compile_expression(&arm.body)?;
+                            let end_jump = self.emit(Opcode::Jump(0), line);
+                            then_jumps.push(end_jump);
+                            // Patch JumpIfFalse to here (next arm's test)
+                            self.patch_jump(then_jump);
+                        }
+                        _ => {
+                            return Err(format!("Unsupported match pattern at line {}", line));
+                        }
+                    }
+                }
+
+                // If no wildcard, all conditions fell through — pop the last false, push nil
+                if !arms.iter().any(|a| matches!(a.pattern, Pattern::Wildcard)) {
+                    self.emit(Opcode::Pop, line);
+                    self.emit(Opcode::Nil, line);
+                }
+
+                // Patch all end_jumps to here
+                let end = self.chunk.code.len();
+                for &jump in &then_jumps {
+                    self.patch_jump_to(jump, end);
                 }
                 Ok(())
             }

@@ -23,6 +23,7 @@ pub enum Token {
     Arrow, FatArrow, Dot, DotDot, Question,
     Colon, ColonColon, Semicolon, Comma,
     Shl, Shr,
+    StarStar,
 
     LParen, RParen, LBrace, RBrace, LBracket, RBracket,
 
@@ -257,7 +258,9 @@ impl Lexer {
                 '-' => if self.peek() == Some('>') { self.advance(); Token::Arrow }
                        else if self.peek() == Some('=') { self.advance(); Token::MinusEq }
                        else { Token::Minus },
-                '*' => if self.peek() == Some('=') { self.advance(); Token::StarEq } else { Token::Star },
+                '*' => if self.peek() == Some('*') { self.advance(); Token::StarStar }
+                       else if self.peek() == Some('=') { self.advance(); Token::StarEq }
+                       else { Token::Star },
                 '/' => if self.peek() == Some('=') { self.advance(); Token::SlashEq } else { Token::Slash },
                 '%' => Token::Percent, '^' => Token::Caret,
                 '&' => if self.peek() == Some('&') { self.advance(); Token::AmpAmp } else { Token::Amp },

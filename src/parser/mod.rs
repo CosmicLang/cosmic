@@ -236,9 +236,10 @@ impl Parser {
             Token::PipePipe => Ok(BinOp::Or),
             Token::Amp => Ok(BinOp::BitAnd),
             Token::Pipe => Ok(BinOp::BitOr),
-            Token::Caret => Ok(BinOp::Pow),
+            Token::Caret => Ok(BinOp::BitXor),
             Token::Shl => Ok(BinOp::Shl),
             Token::Shr => Ok(BinOp::Shr),
+            Token::StarStar => Ok(BinOp::Pow),
             _ => Err(format!("not an operator")),
         }
     }
@@ -361,10 +362,19 @@ impl Parser {
             Token::Return => self.parse_return(),
             Token::While => self.parse_while(),
             Token::For => self.parse_for(),
-            Token::Fn => self.parse_function(),
-            Token::Struct => self.parse_struct(),
-            Token::Enum => self.parse_enum(),
+            Token::Fn => self.parse_function(false),
+            Token::Struct => self.parse_struct(false),
+            Token::Enum => self.parse_enum(false),
             Token::Import => self.parse_import(),
+            Token::Pub => {
+                self.advance(); // consume pub
+                match self.peek().clone() {
+                    Token::Fn => self.parse_function(true),
+                    Token::Struct => self.parse_struct(true),
+                    Token::Enum => self.parse_enum(true),
+                    _ => Err(format!("Expected 'fn', 'struct', or 'enum' after 'pub' at line {}", self.current().line)),
+                }
+            }
             Token::Break => {
                 let tok = self.advance();
                 if self.peek() == &Token::Semicolon { self.advance(); }
@@ -380,14 +390,45 @@ impl Parser {
                 let line = expr.line;
                 let col = expr.col;
                 let len = expr.len;
-                if self.peek() == &Token::Eq {
-                    self.advance();
-                    let value = self.parse_expression()?;
-                    if self.peek() == &Token::Semicolon { self.advance(); }
-                    Ok(Spanned { value: Ast::Assign { target: Box::new(expr), value: Box::new(value) }, line, col, len })
-                } else {
-                    if self.peek() == &Token::Semicolon { self.advance(); }
-                    Ok(Spanned { value: Ast::Expr(Box::new(expr)), line, col, len })
+                match self.peek() {
+                    Token::Eq => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        if self.peek() == &Token::Semicolon { self.advance(); }
+                        Ok(Spanned { value: Ast::Assign { target: Box::new(expr), value: Box::new(value) }, line, col, len })
+                    }
+                    Token::PlusEq => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        if self.peek() == &Token::Semicolon { self.advance(); }
+                        let binop = Ast::BinaryOp { op: BinOp::Add, left: Box::new(expr.clone()), right: Box::new(value) };
+                        Ok(Spanned { value: Ast::Assign { target: Box::new(expr), value: Box::new(Spanned { value: binop, line, col, len }) }, line, col, len })
+                    }
+                    Token::MinusEq => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        if self.peek() == &Token::Semicolon { self.advance(); }
+                        let binop = Ast::BinaryOp { op: BinOp::Sub, left: Box::new(expr.clone()), right: Box::new(value) };
+                        Ok(Spanned { value: Ast::Assign { target: Box::new(expr), value: Box::new(Spanned { value: binop, line, col, len }) }, line, col, len })
+                    }
+                    Token::StarEq => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        if self.peek() == &Token::Semicolon { self.advance(); }
+                        let binop = Ast::BinaryOp { op: BinOp::Mul, left: Box::new(expr.clone()), right: Box::new(value) };
+                        Ok(Spanned { value: Ast::Assign { target: Box::new(expr), value: Box::new(Spanned { value: binop, line, col, len }) }, line, col, len })
+                    }
+                    Token::SlashEq => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        if self.peek() == &Token::Semicolon { self.advance(); }
+                        let binop = Ast::BinaryOp { op: BinOp::Div, left: Box::new(expr.clone()), right: Box::new(value) };
+                        Ok(Spanned { value: Ast::Assign { target: Box::new(expr), value: Box::new(Spanned { value: binop, line, col, len }) }, line, col, len })
+                    }
+                    _ => {
+                        if self.peek() == &Token::Semicolon { self.advance(); }
+                        Ok(Spanned { value: Ast::Expr(Box::new(expr)), line, col, len })
+                    }
                 }
             }
         }
@@ -430,9 +471,8 @@ impl Parser {
         Ok(Spanned { value: Ast::For { var, iter, body }, line: token.line, col: token.col, len: token.len })
     }
 
-    fn parse_function(&mut self) -> Result<Spanned<Ast>, String> {
+    fn parse_function(&mut self, public: bool) -> Result<Spanned<Ast>, String> {
         let token = self.advance(); // fn
-        let public = if self.peek() == &Token::Pub { self.advance(); true } else { false };
         let name = self.expect_ident()?;
         self.expect(&Token::LParen)?;
         let mut params = Vec::new();
@@ -449,9 +489,8 @@ impl Parser {
         Ok(Spanned { value: Ast::Function { name, params, return_type, body, public }, line: token.line, col: token.col, len: token.len })
     }
 
-    fn parse_struct(&mut self) -> Result<Spanned<Ast>, String> {
+    fn parse_struct(&mut self, public: bool) -> Result<Spanned<Ast>, String> {
         let token = self.advance();
-        let public = if self.peek() == &Token::Pub { self.advance(); true } else { false };
         let name = self.expect_ident()?;
         self.expect(&Token::LBrace)?;
         let mut fields = Vec::new();
@@ -467,9 +506,8 @@ impl Parser {
         Ok(Spanned { value: Ast::Struct { name, fields, public }, line: token.line, col: token.col, len: token.len })
     }
 
-    fn parse_enum(&mut self) -> Result<Spanned<Ast>, String> {
+    fn parse_enum(&mut self, public: bool) -> Result<Spanned<Ast>, String> {
         let token = self.advance();
-        let public = if self.peek() == &Token::Pub { self.advance(); true } else { false };
         let name = self.expect_ident()?;
         self.expect(&Token::LBrace)?;
         let mut variants = Vec::new();
